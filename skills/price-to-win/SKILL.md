@@ -33,7 +33,7 @@ Build a defensible price that wins without leaving money on the table. Federal c
 6. That is your fully burdened labor cost — not your billing rate
 
 ## COMPETITIVE INTELLIGENCE
-- Pull historical awards from FPDS for this NAICS and agency
+- Pull historical awards from SAM.gov Contract Awards or USASpending.gov for this NAICS and agency
 - Look at awarded prices on similar MATOC task orders
 - Request debriefs from past losses to calibrate pricing
 - Check if incumbent has had modifications (cost overruns signal they underbid)

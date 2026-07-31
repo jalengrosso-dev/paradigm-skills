@@ -34,7 +34,7 @@ It takes 13-23 meaningful touchpoints before winning a first contract with an ag
 
 5. Cold Outreach No Opportunity: based on market research alignment only, request teleconference, relationship-first not transaction-first
 
-6. Subcontracting Outreach to Prime: target primes holding agency contracts, position as value-add sub, find primes on FPDS
+6. Subcontracting Outreach to Prime: target primes holding agency contracts, position as value-add sub, find primes on SAM.gov Contract Awards / USASpending.gov
 
 ## CAPABILITY BRIEFING STRUCTURE (7 slides)
 1. Who we are (30 seconds)

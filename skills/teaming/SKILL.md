@@ -19,7 +19,7 @@ Find the right teaming partners, structure the relationship correctly, and prote
 ## WHERE TO FIND PARTNERS
 - SBA DSBS: search by NAICS, certification, location, bonding capacity
 - SBA SubNet: post or respond to teaming notices
-- FPDS: find who has been winning at target agencies in target NAICS
+- SAM.gov Contract Awards / USASpending.gov: find who has been winning at target agencies in target NAICS
 - SAM.gov: registered vendors by NAICS and certifications
 - LinkedIn: search by contracting specialty and agency focus
 

@@ -33,7 +33,7 @@ I route your requests to the right specialist, sequence multi-agent workflows, a
 
 **What I know:**
 - SAM.gov: filter by NAICS, set-aside, agency, dollar value, response date
-- FPDS.gov: historical awards, expiring contracts (search 3–18 months out), CO contacts
+- SAM.gov Contract Awards (sam.gov/contracting): historical awards, expiring contracts (search 3–18 months out), CO contacts
 - USASpending.gov: incumbent research, agency spending patterns, competitor revenue
 - GovWin IQ, SBA SubNet, state procurement portals
 
@@ -49,7 +49,7 @@ Score 7+: Pursue | 4–6: Assess | Below 4: Pass
 
 **Set-aside codes:** 8(a), HUBZone, SDVOSB, WOSB, EDWOSB, VOSB, SBA set-aside, Full & Open
 
-**Expiring contract strategy:** Search FPDS for awards 3–5 years old → find CO → email 6–12 months before expiration → build relationship before RFP drops
+**Expiring contract strategy:** Search SAM.gov Contract Awards or USASpending.gov for awards 3–5 years old → find CO → email 6–12 months before expiration → build relationship before RFP drops
 
 **Output format:**
 1. Opportunities found (with solicitation number, agency, deadline, set-aside, NAICS)
@@ -443,7 +443,7 @@ State/local contracts, commercial work, subcontract experience, academic/non-pro
 Direct Rate × (1 + Fringe%) × (1 + Overhead%) × (1 + G&A%) × (1 + Profit%) = Billing Rate
 
 **Competitive intelligence:**
-- Pull historical awards from FPDS for this NAICS and agency
+- Pull historical awards from SAM.gov Contract Awards or USASpending.gov for this NAICS and agency
 - Check GSA Advantage for schedule rates as benchmark
 - Request debrief from past losses to calibrate pricing
 
@@ -475,7 +475,7 @@ Direct Rate × (1 + Fringe%) × (1 + Overhead%) × (1 + G&A%) × (1 + Profit%) =
 - SBA DSBS: search by NAICS, certification, location
 - SBA SubNet: post or respond to teaming notices
 - SAM.gov: registered vendors by NAICS and certs
-- FPDS: find who's been winning in target agencies
+- SAM.gov Contract Awards / USASpending.gov: find who's been winning in target agencies
 - LinkedIn: search by contracting specialty
 
 **Partner scoring (100 pts):**
@@ -628,7 +628,7 @@ Government contracting is won through relationships BEFORE the RFP drops. It tak
    Based on market research alignment — no specific opportunity yet. Request a teleconference to demonstrate support capability. Shows you're relationship-first, not transaction-first.
 
 6. **Subcontracting Outreach**
-   Targets prime contractors currently holding agency contracts. Positions you as a value-add subcontractor. Find primes on FPDS and USASpending.
+   Targets prime contractors currently holding agency contracts. Positions you as a value-add subcontractor. Find primes on SAM.gov Contract Awards and USASpending.
 
 **Capability briefing — the 80/20 rule:**
 You present 20% of the time. You ask questions 80% of the time. You are there to gather intelligence, not lecture.
@@ -664,7 +664,7 @@ Every interaction counts toward your 13–23. Log: date, contact name, medium (e
 - Forecast list — pipeline opportunities ✅
 - Small Business Programs page — find the SBS ✅
 - USASpending — who is currently winning at this agency ✅
-- FPDS — expiring contracts to reference ✅
+- SAM.gov Contract Awards / USASpending.gov — expiring contracts to reference ✅
 
 **Output format:**
 1. Drafted outreach email (personalized, ready to send)
