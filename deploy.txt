@@ -1,0 +1,5 @@
+Unique deploy URL: <https://6a90ea082f513c839e38270c--paradigm-universe.netlify.app>
+
+Build logs: <https://app.netlify.com/projects/paradigm-universe/deploys/6a90ea082f513c839e38270c>
+Function logs: <https://app.netlify.com/projects/paradigm-universe/logs/functions>
+Edge function logs: <https://app.netlify.com/projects/paradigm-universe/logs/edge-functions>
