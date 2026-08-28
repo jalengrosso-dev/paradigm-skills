@@ -1,0 +1,1 @@
+{"success":true,"skill":"---\nname: cmmc-nist-readiness\ndescription: >-\n  Walk a client through CMMC 2.0 / NIST SP 800-171 readiness for DoD work — scoping FCI vs CUI,\n  determining the required level (1/2/3), self-assessment vs C3PAO path, building the SSP and POA&M,\n  the SPRS score and annu
