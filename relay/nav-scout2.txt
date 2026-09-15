@@ -1,0 +1,63 @@
+=== nav block verbatim 1455-1500 ===
+}
+
+// ============================================================================
+// SIDEBAR (with Leads) + TOPBAR + TODAY
+// ============================================================================
+function Sidebar({ t, view, navigate, sidebarOpen, setSidebarOpen, mobile }) {
+  const items = [
+    { id: 'today', label: 'Today', icon: Zap },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { divider: 'Universe' },
+    { id: 'leads', label: 'Leads', icon: Sprout },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'agencies', label: 'Agencies', icon: Building2 },
+    { id: 'opportunities', label: 'Opportunities', icon: Briefcase },
+    { divider: 'Operations' },
+    { id: 'calendar', label: 'Calendar', icon: Calendar },
+    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+    { id: 'proposals', label: 'Proposals', icon: PenTool },
+    { id: 'library', label: 'Content Library', icon: BookOpen },
+    { id: 'proofpoints', label: 'Proof Points', icon: CheckSquare },
+    { id: 'keypersonnel', label: 'Key Personnel', icon: Users },
+    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'revenue', label: 'Revenue', icon: DollarSign },
+    { id: 'contracts', label: 'Contracts', icon: FileSignature },
+    { divider: 'Intelligence' },
+    { id: 'prospecting', label: 'Prospecting', icon: Search },
+    { id: 'surety', label: 'Surety Partners', icon: Shield },
+    { id: 'outreach', label: 'Outreach Queue', icon: Mail },
+    { id: 'agents', label: 'Agent Hub', icon: Bot },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ];
+  if (mobile && !sidebarOpen) return null;
+  return (
+    <>
+      {mobile && sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} />}
+      <aside style={{ width: 232, background: t.surface, borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', position: mobile ? 'fixed' : 'relative', top: mobile ? 56 : 'auto', bottom: 0, left: 0, zIndex: 100, height: mobile ? 'calc(100vh - 56px)' : 'auto', overflow: 'hidden', flexShrink: 0 }}>
+        <nav style={{ flex: 1, padding: 12, overflowY: 'auto' }}>
+          {items.map((item, i) => {
+            if (item.divider) return <div key={i} className="mono" style={{ fontSize: 10, color: t.textTer, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '16px 12px 6px' }}>{item.divider}</div>;
+            const Icon = item.icon;
+            const active = view === item.id || (view === 'client-detail' && item.id === 'clients') || (view === 'lead-detail' && item.id === 'leads') || (view === 'agency-detail' && item.id === 'agencies') || (view === 'opportunity-detail' && item.id === 'opportunities');
+            return (
+              <button key={item.id} onClick={() => navigate(item.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '9px 12px', borderRadius: 8, marginBottom: 2, background: active ? t.accentDim : 'transparent', color: active ? t.accent : t.textSec, fontSize: 13, fontWeight: active ? 500 : 400, transition: 'all 0.15s', position: 'relative' }}>
+                {active && <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 2, background: t.accent, borderRadius: 1 }} />}
+                <Icon size={17} strokeWidth={1.8} />
+                <span>{item.label}</span>
+
+=== tab state variable ===
+452:  const [view, setView] = useState('today');
+799:  const [view, setView] = useState('dashboard');
+
+=== nav render ===
+10534:            {AGENTS.map(a => { const AIcon = a.icon; return (
+10607:    ...clients.filter(c => c.name.toLowerCase().includes(ql)).map(c => ({ type: 'Client', icon: Users, color: t.info, label: c.name, sub: `${c.industry} · ${c.location}`, onClick: () => { navigate('client-detail', c.id); onClose(); } })),
+10608:    ...leads.filter(l => l.name.toLowerCase().includes(ql) || l.contact_name?.toLowerCase().includes(ql)).map(l => ({ type: 'Lead', icon: Sprout, color: t.purple, label: l.name, sub: `${l.stage} · ${l.source || 'no source'}`, onClick: () => { navigate('lead-detail', l.id); onClose(); } })),
+10609:    ...opps.filter(o => o.title.toLowerCase().includes(ql) || o.solicitation_number?.toLowerCase().includes(ql)).map(o => ({ type: 'Opportunity', icon: Briefcase, color: t.accent, label: o.title, sub: `${o.solicitation_number} · ${o.stage}`, onClick: () => { navigate('opportunity-detail', o.id); onClose(); } })),
+10610:    ...agencies.filter(a => a.name.toLowerCase().includes(ql) || a.abbrev?.toLowerCase().includes(ql)).map(a => ({ type: 'Agency', icon: Building2, color: a.color, label: a.name, sub: a.type, onClick: () => { navigate('agency-detail', a.id); onClose(); } })),
+10611:    ...prospects.filter(p => p.company_name?.toLowerCase().includes(ql) || p.contact_name?.toLowerCase().includes(ql)).map(p => ({ type: 'Prospect', icon: Search, color: t.cyan || '#22D3EE', label: p.company_name, sub: `${p.contact_name || 'no contact'} · score ${p.govcon_readiness_score ?? '—'}`, onClick: () => { navigate('prospecting'); onClose(); } })),
+10612:    ...proposals.filter(p => p.title?.toLowerCase().includes(ql)).map(p => ({ type: 'Proposal', icon: PenTool, color: '#4ADE80', label: p.title, sub: p.status, onClick: () => { navigate('proposals'); onClose(); } })),
+10613:    ...docs.filter(d => d.name?.toLowerCase().includes(ql)).map(d => ({ type: 'Document', icon: FileText, color: '#94A3B8', label: d.name, sub: d.type, onClick: () => { navigate('documents'); onClose(); } })),
+10614:    ...suretyAgents.filter(s => s.name?.toLowerCase().includes(ql) || s.agency_name?.toLowerCase().includes(ql)).map(s => ({ type: 'Surety', icon: Shield, color: '#A855F7', label: s.name, sub: `${s.agency_name || ''} · ${s.pipeline_stage || ''}`, onClick: () => { navigate('surety'); onClose(); } })),
+10628:          {results.map((r, i) => { const RIcon = r.icon; return (
