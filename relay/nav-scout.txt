@@ -1,0 +1,86 @@
+=== App.jsx line count ===
+   10638 src/App.jsx
+
+=== tab state and nav ===
+
+=== tab definitions ===
+74:  morning: { label: 'Morning', sub: 'Research + CRM Review', icon: Sunrise, hours: '7–10 AM' },
+75:  midday: { label: 'Midday', sub: 'Outreach + Engagement', icon: SunIcon, hours: '10 AM–1 PM' },
+76:  afternoon: { label: 'Afternoon', sub: 'Business Development', icon: Coffee, hours: '1–4 PM' },
+77:  late_afternoon: { label: 'Late Afternoon', sub: 'Education + Events', icon: Sunset, hours: '4–6 PM' },
+78:  eod: { label: 'End of Day', sub: 'Planning + Organization', icon: Moon, hours: '6–7 PM' },
+856:    { id: 'dashboard', label: 'Dashboard', roles: ['owner','pm','estimator'] },
+857:    { id: 'opportunities', label: 'Opportunities', roles: ['owner','pm','estimator'] },
+858:    { id: 'documents', label: 'Documents', roles: ['owner','pm','estimator'] },
+859:    { id: 'activity', label: 'Activity', roles: ['owner','pm'] },
+1020:    { label: 'Current Phase', value: 'Phase ' + phase, sub: PORTAL_PHASES[phase] || '', color: T.accent },
+1021:    { label: 'Active Pipeline', value: portalMoney(pipelineValue), sub: activeOpps.length + ' opportunities', color: T.info },
+1022:    { label: 'Won', value: portalMoney(wonValue), sub: wonOpps.length + ' awards', color: T.success },
+1207:    events.push({ date: m.created_at, label: m.title + (m.detail ? ' — ' + m.detail : ''), color: T.success });
+1210:    if (o.stage === 'Won') events.push({ date: o.last_activity || o.created_at, label: 'Contract won: ' + o.title, color: T.success });
+1211:    else if (o.stage === 'Submitted') events.push({ date: o.last_activity || o.created_at, label: 'Proposal submitted: ' + o.title, color: T.info });
+1212:    else events.push({ date: o.created_at, label: 'Pursuing: ' + o.title, color: T.accent });
+1462:    { id: 'today', label: 'Today', icon: Zap },
+1463:    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+1465:    { id: 'leads', label: 'Leads', icon: Sprout },
+1466:    { id: 'clients', label: 'Clients', icon: Users },
+1467:    { id: 'agencies', label: 'Agencies', icon: Building2 },
+1468:    { id: 'opportunities', label: 'Opportunities', icon: Briefcase },
+1470:    { id: 'calendar', label: 'Calendar', icon: Calendar },
+1471:    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+1472:    { id: 'proposals', label: 'Proposals', icon: PenTool },
+1473:    { id: 'library', label: 'Content Library', icon: BookOpen },
+1474:    { id: 'proofpoints', label: 'Proof Points', icon: CheckSquare },
+1475:    { id: 'keypersonnel', label: 'Key Personnel', icon: Users },
+1476:    { id: 'documents', label: 'Documents', icon: FileText },
+1477:    { id: 'revenue', label: 'Revenue', icon: DollarSign },
+1478:    { id: 'contracts', label: 'Contracts', icon: FileSignature },
+1480:    { id: 'prospecting', label: 'Prospecting', icon: Search },
+1481:    { id: 'surety', label: 'Surety Partners', icon: Shield },
+1482:    { id: 'outreach', label: 'Outreach Queue', icon: Mail },
+1483:    { id: 'agents', label: 'Agent Hub', icon: Bot },
+1484:    { id: 'settings', label: 'Settings', icon: Settings },
+1573:    { id: 'owner', label: 'Owner', desc: 'Sees everything: dashboard, opportunities, documents, activity' },
+1574:    { id: 'pm', label: 'Project Manager', desc: 'Sees everything: dashboard, opportunities, documents, activity' },
+1575:    { id: 'estimator', label: 'Estimator', desc: 'Sees dashboard, opportunities, and documents (no activity)' },
+3319:    { id: 'overview', label: 'Overview' }, { id: 'about', label: 'About' }, { id: 'meetings', label: 'Meetings' }, { id: 'pocs', label: `Client POCs (${pocs.length})` },
+3320:    { id: 'agreement', label: 'Agreement' }, { id: 'equity', label: 'Equity' },
+3321:    { id: 'opportunities', label: `Opportunities (${co.length})` }, { id: 'contacts', label: `Agency Contacts (${cc.length})` },
+3322:    { id: 'documents', label: `Documents (${cd.length})` }, { id: 'onboarding', label: 'Onboarding' },
+3323:    { id: 'subopps', label: 'Sub Opportunities' },
+3324:    { id: 'pastperf', label: 'Past Performance' },
+3325:    { id: 'portal', label: 'Portal Access' },
+3326:    { id: 'notes', label: 'Notes' },
+3926:  { id: 'federal', label: 'Federal' },
+3927:  { id: 'state', label: 'State' },
+3928:  { id: 'local', label: 'Local' },
+4042:          {[{ id: 'all', label: 'All' }, ...GOV_LEVELS].map(l => (
+4453:  prerfp: { label: 'Pre-RFP', types: ['Sources Sought', 'Presolicitation', 'Special Notice'], color: '#A78BFA' },
+4454:  biddable: { label: 'Biddable', types: ['Solicitation', 'Combined Synopsis/Solicitation'], color: '#4ADE80' },
+4455:  intel: { label: 'Intel', types: ['Award Notice', 'Justification', 'Consolidate/(Substantially) Bundle'], color: '#6B7280' },
+4676:  { key: 'relationship', label: 'Agency relationship strength', max: 30 },
+4677:  { key: 'pastPerf', label: 'Relevant past performance match', max: 25 },
+4678:  { key: 'advantage', label: 'Set-aside / vehicle advantage', max: 20 },
+4679:  { key: 'incumbent', label: 'Incumbent vulnerability', max: 15 },
+4680:  { key: 'capability', label: 'Internal capability match', max: 10 },
+4684:  if (pct > 50) return { label: 'Pursue', color: t.success };
+4685:  if (pct >= 30) return { label: 'Reassess', color: t.warning };
+4686:  return { label: 'Walk away', color: t.danger };
+5170:  { id: 'proposal', label: 'Full Proposal', template: SECTION_TEMPLATE },
+5171:  { id: 'white_paper', label: 'White Paper', template: WHITE_PAPER_TEMPLATE },
+5172:  { id: 'rfi_response', label: 'RFI Response', template: RFI_TEMPLATE },
+5177:  { needle: 'usa contract solutions', label: '"USA Contract Solutions"' },
+5178:  { needle: '200 east pratt', label: '200 East Pratt St (Baltimore address)' },
+5179:  { needle: 'usacontractsolutions.com', label: 'info@USAContractSolutions.com' },
+5180:  { needle: '410-744-3266', label: 'phone 410-744-3266' },
+5181:  { needle: '4107443266', label: 'phone 410-744-3266' },
+6964:  const gradeBand = (g) => g <= 13 ? { label: 'Clear', color: '#10B981' } : g <= 19 ? { label: 'Professional', color: '#10B981' } : g <= 24 ? { label: 'Dense', color: '#F59E0B' } : { label: 'Too dense — simplify', color: '#EF4444' };
+7039:    return { label: theme.label, keywords: kws, hits, coveredCount, totalSections: drafted.length };
+7044:  const [themes, setThemes] = useState((proposal.win_themes && proposal.win_themes.length) ? proposal.win_themes : [{ label: '', statement: '', discriminator: '', proof_point_id: '', litmus_unique: false, litmus_scorable: false, keywords: [] }]);
+7051:  const setLabel = (i, v) => { const next = [...themes]; next[i] = { ...next[i], label: v }; setThemes(next); };
+7053:  const addTheme = () => { if (themes.length >= 5) return; setThemes([...themes, { label: '', statement: '', discriminator: '', proof_point_id: '', litmus_unique: false, litmus_scorable: false, keywords: [] }]); setKwInputs([...kwInputs, '']); };
+7059:      const payload = themes.map((th, i) => ({ label: (th.label || '').trim(), statement: (th.statement || '').trim(), discriminator: (th.discriminator || '').trim(), proof_point_id: th.proof_point_id || '', litmus_unique: !!th.litmus_unique, litmus_scorable: !!th.litmus_scorable, keywords: kwInputs[i].split(',').map(k => k.trim()).filter(Boolean) })).filter(th => th.label && th.keywords.length > 0);
+7452:    return { label: th.label, covered, total: drafted.length, weak: covered <= 1 };
+7481:    { label: 'All sections drafted', pass: empty.length === 0, detail: empty.length === 0 ? `${all}/${all} sections complete` : `${empty.length} empty: ${empty.map(s => s.title).join(', ')}` },
+7482:    { label: 'Page limit', pass: !overLimit, warn: !pageLimit, detail: !pageLimit ? `~${estPages} pages est. (no limit set)` : overLimit ? `~${estPages} pages — OVER ${pageLimit}-page limit` : `~${estPages} of ${pageLimit} pages` },
+7483:    { label: 'Win themes woven', pass: weakThemes.length === 0, warn: themes.length === 0, detail: themes.length === 0 ? 'No themes defined' : weakThemes.length === 0 ? 'All themes proven across sections' : `Under-woven: ${weakThemes.map(t => t.label).join(', ')}` },
