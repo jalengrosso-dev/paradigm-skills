@@ -1,0 +1,107 @@
+=== opportunity stages ===
+65:const STAGES = ['Identified','Bid Decision Made','Proposal In Progress','Submitted','Under Evaluation','Award Decision','Won','Lost'];
+66:const STAGE_COLORS = { 'Identified':'#64748B','Bid Decision Made':'#3B82F6','Proposal In Progress':'#A855F7','Submitted':'#F59E0B','Under Evaluation':'#EC4899','Award Decision':'#D4A574','Won':'#10B981','Lost':'#EF4444' };
+67:const LEAD_STAGES = ['New','Discovery','Demo','Proposal','Negotiating','Closed Won','Closed Lost'];
+1013:  const activeOpps = opps.filter(o => !['Won','Lost'].includes(o.stage));
+1014:  const wonOpps = opps.filter(o => o.stage === 'Won');
+1022:    { label: 'Won', value: portalMoney(wonValue), sub: wonOpps.length + ' awards', color: T.success },
+1093:  const active = opps.filter(o => !['Won','Lost'].includes(o.stage));
+1094:  const closed = opps.filter(o => ['Won','Lost'].includes(o.stage));
+1095:  const stageColor = (s) => ({ 'Won': T.success, 'Lost': T.danger, 'Submitted': T.info, 'Identified': T.textTer }[s] || T.accent);
+1210:    if (o.stage === 'Won') events.push({ date: o.last_activity || o.created_at, label: 'Contract won: ' + o.title, color: T.success });
+1211:    else if (o.stage === 'Submitted') events.push({ date: o.last_activity || o.created_at, label: 'Proposal submitted: ' + o.title, color: T.info });
+1955:  const SUB_STATUSES = ['Identified', 'Contacted Prime', 'NDA Signed', 'Teaming Agreement', 'Proposal Submitted', 'Won', 'Lost', 'Withdrawn'];
+1956:  const SUB_STATUS_COLORS = { 'Identified': '#6B7280', 'Contacted Prime': '#3B82F6', 'NDA Signed': '#A78BFA', 'Teaming Agreement': '#F59E0B', 'Proposal Submitted': '#EC4899', 'Won': '#4ADE80', 'Lost': '#F87171', 'Withdrawn': '#6B7280' };
+2026:  const SUB_STATUSES = ['Identified', 'Contacted Prime', 'NDA Signed', 'Teaming Agreement', 'Proposal Submitted', 'Won', 'Lost', 'Withdrawn'];
+2434:  const activeOpps = opps.filter(o => !['Won','Lost'].includes(o.stage));
+2465:  const stageData = STAGES.map(s => ({ stage: s, value: opps.filter(o => o.stage === s).length, fill: STAGE_COLORS[s] })).filter(d => d.value > 0);
+2770:          {LEAD_STAGES.map(stage => {
+2968:          {LEAD_STAGES.map(x => <option key={x}>{x}</option>)}
+3040:            const co = opps.filter(o => o.client_id === c.id && !['Won','Lost'].includes(o.stage));
+3379:        <Stat t={t} label="Active Bids" value={co.filter(o => !['Won','Lost'].includes(o.stage)).length} color={t.info} />
+4549:          {STAGES.map(stage => {
+4572:                        {days > 0 && !['Won','Lost'].includes(o.stage) && <span className="mono" style={{ fontSize: 10, color: days <= 7 ? t.danger : t.textTer }}>{days}d</span>}
+4597:                <div className="mono" style={{ fontSize: 12, color: days <= 7 ? t.danger : t.textSec, textAlign: 'right' }}>{['Won','Lost'].includes(o.stage) ? '—' : `${days}d`}</div>
+4671:          {STAGES.map(s => <option key={s}>{s}</option>)}
+5044:  const oppDeadlines = opps.filter(o => !['Won','Lost'].includes(o.stage)).map(o => ({ id: `o-${o.id}`, title: `${o.solicitation_number} — DUE`, event_date: o.due_date, event_time: '17:00', type: 'rfp-deadline' }));
+
+=== bid/no-bid + pwin ===
+88:  { id: 'winning', name: 'Winning Strategy', short: 'WS', icon: Award, color: '#F472B6', description: 'Strategy memos. Pwin calculation. Black hat analysis.' },
+657:    'pWin scoring: use the purple "Score with AI" button to pre-fill the 5 factors from opportunity context.',
+2441:  // Win/Loss analytics from outcome + pwin fields
+2454:  // pWin calibration — avg predicted pwin of won vs lost
+2455:  const scoredWon = wonOpps.filter(o => o.pwin != null);
+2456:  const scoredLost = lostOpps.filter(o => o.pwin != null);
+2457:  const avgPwinWon = scoredWon.length ? Math.round(scoredWon.reduce((s, o) => s + o.pwin, 0) / scoredWon.length) : null;
+2458:  const avgPwinLost = scoredLost.length ? Math.round(scoredLost.reduce((s, o) => s + o.pwin, 0) / scoredLost.length) : null;
+2490:              {avgPwinWon != null && avgPwinLost != null && (
+2492:                  <div style={{ fontWeight: 600, color: t.text, marginBottom: 4 }}>pWin calibration</div>
+2493:                  <div>Won bids avg predicted: <span style={{ color: t.success, fontWeight: 600 }}>{avgPwinWon}%</span></div>
+2494:                  <div>Lost bids avg predicted: <span style={{ color: t.danger, fontWeight: 600 }}>{avgPwinLost}%</span></div>
+2495:                  <div style={{ fontSize: 11, color: t.textTer, marginTop: 4 }}>{avgPwinWon > avgPwinLost ? 'Model is calibrated — you win the ones you score higher.' : 'Model needs tuning — scores don\'t predict wins yet.'}</div>
+3149:// ---- Client scoring profile (feeds pWin scorer via clients.* hydration) + meeting log ----
+3173:      <div style={{ padding: '10px 14px', borderRadius: 8, background: t.accentDim, color: t.textSec, fontSize: 12, lineHeight: 1.5 }}>These fields feed the pWin scorer directly. The more complete this profile, the less the AI guesses when scoring opportunities for this client.</div>
+3212:        {saved && <span style={{ fontSize: 12, color: t.success }}>Saved. Re-score to see updated pWin.</span>}
+4566:                        <div className="mono" style={{ padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 600, background: o.bid_no_bid_score >= 7 ? `${t.success}20` : `${t.warning}20`, color: o.bid_no_bid_score >= 7 ? t.success : t.warning }}>{o.bid_no_bid_score}/10</div>
+4614:    bid_no_bid_score: 5, bid_decision: '',
+4630:        bid_no_bid_score: Number(form.bid_no_bid_score) || 5
+4678:      <FormRow t={t} label="Bid Score (1-10)"><input type="number" min="1" max="10" value={form.bid_no_bid_score} onChange={e => setForm({...form, bid_no_bid_score: e.target.value})} style={inputStyle(t)} /></FormRow>
+4695:// ---- pWin scorer + outcome (Winning Strategy 5-factor model) ----
+4696:const PWIN_FACTORS = [
+4704:function pwinVerdict(pct, t) {
+4710:function PwinPanel({ t, opp, clients, agencies, onSaved }) {
+4724:      const res = await fetch('/.netlify/functions/score-pwin', {
+4739:  const init = opp.pwin_factors || { relationship: 0, pastPerf: 0, advantage: 0, incumbent: 0, capability: 0 };
+4743:  const total = PWIN_FACTORS.reduce((s, f) => s + (Number(factors[f.key]) || 0), 0);
+4744:  const verdict = pwinVerdict(total, t);
+4749:      const updated = await db.opps.update(opp.id, { pwin: total, pwin_factors: factors, pwin_scored_at: new Date().toISOString() });
+4769:        <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: t.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>pWin Score</h3>
+4773:      {PWIN_FACTORS.map(f => (
+4783:      <button onClick={save} disabled={busy} style={{ ...btnStyle(t, 'primary'), width: '100%', marginTop: 4, opacity: busy ? 0.6 : 1 }}>{busy ? 'Saving...' : 'Save pWin Score'}</button>
+4961:        <Stat t={t} label="Bid Score" value={o.bid_no_bid_score} suffix="/10" color={o.bid_no_bid_score >= 7 ? t.success : t.warning} />
+4962:        <Stat t={t} label="pWin" value={o.pwin != null ? o.pwin : '—'} suffix={o.pwin != null ? '%' : ''} color={o.pwin == null ? t.textTer : o.pwin > 50 ? t.success : o.pwin >= 30 ? t.warning : t.danger} />
+4990:          <PwinPanel t={t} opp={o} clients={clients} agencies={agencies} onSaved={() => { if (refresh?.opps) refresh.opps(); }} />
+10393:    return { type: 'opportunity', summary: `Opportunity: ${o.title} | Solicitation: ${o.solicitation_number} | Client: ${c?.name} | Agency: ${a?.name} | NAICS: ${o.naics} | Set-aside: ${o.set_aside} | Stage: ${o.stage} | Value: ${fmtCur(o.estimated_value)} | Bid Score: ${o.bid_no_bid_score}/10 | Due: ${o.due_date} (${daysUntil(o.due_date)}d) | Description: ${o.description}`, raw: { opportunity: o, client: c, agency: a } };
+10443:  if (ctx.type === 'opportunity') { const o = ctx.raw.opportunity; const d = daysUntil(o.due_date); return `Looking at **${o.title}** (${o.solicitation_number}). Stage: ${o.stage}. ${d > 0 ? `${d}d to due.` : 'Past due.'} Bid ${o.bid_no_bid_score}/10. Focus?`; }
+
+=== pwin factor block verbatim ===
+        <select value={form.stage} onChange={e => setForm({...form, stage: e.target.value})} style={inputStyle(t)}>
+          {STAGES.map(s => <option key={s}>{s}</option>)}
+        </select>
+      </FormRow>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <FormRow t={t} label="Estimated Value"><input type="number" value={form.estimated_value} onChange={e => setForm({...form, estimated_value: e.target.value})} style={inputStyle(t)} /></FormRow>
+      <FormRow t={t} label="Commission %"><input type="number" step="0.5" min="0" max="20" value={form.commission_rate} onChange={e => setForm({...form, commission_rate: e.target.value})} style={inputStyle(t)} /></FormRow>
+      <FormRow t={t} label="Bid Score (1-10)"><input type="number" min="1" max="10" value={form.bid_no_bid_score} onChange={e => setForm({...form, bid_no_bid_score: e.target.value})} style={inputStyle(t)} /></FormRow>
+    </div>
+    <FormRow t={t} label="Place of Performance"><input value={form.place_of_performance} onChange={e => setForm({...form, place_of_performance: e.target.value})} placeholder="Savannah, GA" style={inputStyle(t)} /></FormRow>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <FormRow t={t} label="Posted Date"><input type="date" value={form.posted} onChange={e => setForm({...form, posted: e.target.value})} style={inputStyle(t)} /></FormRow>
+      <FormRow t={t} label="Q&A Deadline"><input type="date" value={form.qa_deadline} onChange={e => setForm({...form, qa_deadline: e.target.value})} style={inputStyle(t)} /></FormRow>
+      <FormRow t={t} label="Due Date"><input type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})} style={inputStyle(t)} /></FormRow>
+    </div>
+    <FormRow t={t} label="Description"><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={4} placeholder="Scope of work, key requirements, notes..." style={{...inputStyle(t), resize: 'vertical', minHeight: 80}} /></FormRow>
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+      <button onClick={onClose} style={btnStyle(t, 'secondary')}>Cancel</button>
+      <button onClick={save} disabled={busy} style={btnStyle(t, 'primary')}>{busy ? 'Saving...' : (existing ? 'Save Changes' : 'Create Opportunity')}</button>
+    </div>
+  </Modal>;
+}
+
+
+// ---- pWin scorer + outcome (Winning Strategy 5-factor model) ----
+const PWIN_FACTORS = [
+  { key: 'relationship', label: 'Agency relationship strength', max: 30 },
+  { key: 'pastPerf', label: 'Relevant past performance match', max: 25 },
+  { key: 'advantage', label: 'Set-aside / vehicle advantage', max: 20 },
+  { key: 'incumbent', label: 'Incumbent vulnerability', max: 15 },
+
+=== opportunities table columns in use ===
+206:    list: async () => { const { data, error } = await supabase.from('opportunities').select('*').order('due_date'); if (error) throw error; return data || []; },
+207:    create: async (row) => { const { data, error } = await supabase.from('opportunities').insert(row).select().single(); if (error) throw error; return data; },
+208:    update: async (id, patch) => { const { data, error } = await supabase.from('opportunities').update(patch).eq('id', id).select().single(); if (error) throw error; return data; },
+209:    remove: async (id) => { const { error } = await supabase.from('opportunities').delete().eq('id', id); if (error) throw error; },
+994:          portalSupabase.from('opportunities').select('*'),
+1086:      try { const { data } = await portalSupabase.from('opportunities').select('*').order('due_date', { ascending: true }); setOpps(data || []); }
+1193:          portalSupabase.from('opportunities').select('*').order('last_activity', { ascending: false }),
