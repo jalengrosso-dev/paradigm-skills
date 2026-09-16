@@ -1,0 +1,125 @@
+  const exportProposal = async () => {
+    setExportBusy(true);
+    try {
+      const client = clients.find(c => c.id === selected.client_id);
+      const opp = opps.find(o => o.id === selected.opportunity_id);
+      const fresh = await db.sections.listByProposal(selected.id);
+      const brandHits = brandCheckSections(fresh);
+      if (brandHits.length) {
+        const proceed = confirm('BRAND WARNING — this document contains details belonging to another entity:\n\n' + brandHits.map(h => '  \u2022 ' + h).join('\n') + '\n\nThese must never appear in a Paradigm Sourcing Solutions document. Export anyway?');
+        if (!proceed) { setExportBusy(false); return; }
+      }
+      const vols = [...new Set(fresh.map(s => s.volume))];
+
+      const children = [];
+      // Title page
+      children.push(new Paragraph({ text: selected.title, heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { before: 2400, after: 400 } }));
+      if (client) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: 'Prepared by ' + client.name, size: 26 })] }));
+      if (opp) {
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: opp.title, size: 22, italics: true })] }));
+        if (opp.solicitation_number) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: 'Solicitation: ' + opp.solicitation_number, size: 20 })] }));
+        if (opp.agency) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [new TextRun({ text: opp.agency, size: 20 })] }));
+      }
+      if (selected.due_date) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [new TextRun({ text: 'Due: ' + new Date(selected.due_date).toLocaleDateString('en-US', { dateStyle: 'long' }), size: 20 })] }));
+      children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Status: ' + selected.status, size: 18, color: '888888' })] }));
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+
+      // Volumes
+      vols.forEach((vol, vi) => {
+        children.push(new Paragraph({ text: vol, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
+        const volSections = fresh.filter(s => s.volume === vol).sort((a, b) => (a.section_order || 0) - (b.section_order || 0));
+        volSections.forEach(s => {
+          children.push(new Paragraph({ text: s.title, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }));
+          const body = (s.content || '[This section is empty.]').toString();
+          body.split(/\n\n+/).forEach(para => {
+            children.push(new Paragraph({ spacing: { after: 160, line: 360 }, children: [new TextRun({ text: para.trim(), size: 22 })] }));
+          });
+        });
+        if (vi < vols.length - 1) children.push(new Paragraph({ children: [new PageBreak()] }));
+      });
+
+      const doc = new Document({
+        creator: 'Paradigm Universe',
+        title: selected.title,
+        sections: [{ properties: {}, children }]
+      });
+      const blob = await Packer.toBlob(doc);
+      const filename = selected.title.replace(/[^a-zA-Z0-9._-]+/g, '_') + '_v' + new Date().toISOString().split('T')[0] + '.docx';
+      saveAs(blob, filename);
+    } catch(e) { alert('Export failed: ' + e.message); }
+    finally { setExportBusy(false); }
+  };
+
+  const assemblePackage = async (pf) => {
+    try {
+      const client = clients.find(c => c.id === selected.client_id);
+      const opp = opps.find(o => o.id === selected.opportunity_id);
+      const fresh = await db.sections.listByProposal(selected.id);
+      const brandHits = brandCheckSections(fresh);
+      if (brandHits.length) {
+        const proceed = confirm('BRAND WARNING — this document contains details belonging to another entity:\n\n' + brandHits.map(h => '  \u2022 ' + h).join('\n') + '\n\nThese must never appear in a Paradigm Sourcing Solutions document. Export anyway?');
+        if (!proceed) { setExportBusy(false); return; }
+      }
+      const vols = [...new Set(fresh.map(s => s.volume))];
+
+      const children = [];
+      // Cover page
+      children.push(new Paragraph({ text: selected.title, heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { before: 2400, after: 400 } }));
+      if (client) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: 'Prepared by ' + client.name, size: 26 })] }));
+      if (opp) {
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: opp.title, size: 22, italics: true })] }));
+        if (opp.solicitation_number) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: 'Solicitation: ' + opp.solicitation_number, size: 20 })] }));
+        if (opp.agency) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [new TextRun({ text: opp.agency, size: 20 })] }));
+      }
+      if (selected.due_date) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [new TextRun({ text: 'Due: ' + new Date(selected.due_date).toLocaleDateString('en-US', { dateStyle: 'long' }), size: 20 })] }));
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+
+      // Table of Contents
+      children.push(new Paragraph({ text: 'Table of Contents', heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }));
+      vols.forEach(vol => {
+        children.push(new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: vol, bold: true, size: 22 })] }));
+        fresh.filter(s => s.volume === vol).sort((a, b) => (a.section_order || 0) - (b.section_order || 0)).forEach(s => {
+          children.push(new Paragraph({ spacing: { after: 40 }, indent: { left: 360 }, children: [new TextRun({ text: s.title, size: 20 })] }));
+        });
+      });
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+
+      // Forms checklist page
+      children.push(new Paragraph({ text: 'Required Forms Checklist', heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }));
+      pf.formsNeeded.forEach(f => children.push(new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: '[ ] ' + f, size: 22 })] })));
+      children.push(new Paragraph({ spacing: { before: 200 }, children: [new TextRun({ text: 'Attach official OMB form versions. This package does not generate forms.', size: 18, italics: true, color: '888888' })] }));
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+
+      // Volumes
+      vols.forEach((vol, vi) => {
+        children.push(new Paragraph({ text: vol, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
+        fresh.filter(s => s.volume === vol).sort((a, b) => (a.section_order || 0) - (b.section_order || 0)).forEach(s => {
+          children.push(new Paragraph({ text: s.title, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }));
+          (s.content || '[This section is empty.]').toString().split(/\n\n+/).forEach(para => {
+            children.push(new Paragraph({ spacing: { after: 160, line: 360 }, children: [new TextRun({ text: para.trim(), size: 22 })] }));
+          });
+        });
+        if (vi < vols.length - 1) children.push(new Paragraph({ children: [new PageBreak()] }));
+      });
+
+      const doc = new Document({ creator: 'Paradigm Universe', title: selected.title, sections: [{ properties: {}, children }] });
+      const blob = await Packer.toBlob(doc);
+      const stamp = new Date().toISOString().split('T')[0];
+      const filename = 'SUBMITTED_' + selected.title.replace(/[^a-zA-Z0-9._-]+/g, '_') + '_' + stamp + '.docx';
+      saveAs(blob, filename);
+
+      // Freeze snapshot
+      const now = new Date().toISOString();
+      const snapshot = { frozen_at: now, sections: fresh.map(s => ({ volume: s.volume, title: s.title, content: s.content, order: s.section_order })), est_pages: pf.estPages };
+      await db.proposals.update(selected.id, { submitted_at: now, submitted_snapshot: snapshot, status: 'Submitted' });
+      // Index this proposal's sections into the searchable archive (best-effort — never block submission).
+      fetch('/.netlify/functions/archive-embed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proposal_id: selected.id }) }).catch(() => {});
+      setSelected({ ...selected, submitted_at: now, status: 'Submitted' });
+      setPreflightOpen(false);
+      refresh.proposals();
+    } catch(e) { alert('Assembly failed: ' + e.message); }
+  };
+
+  const removeProposal = async (p) => {
+    if (!confirm('Delete proposal "' + p.title + '" and all its sections?')) return;
+    try { await db.proposals.remove(p.id); if (selected?.id === p.id) setSelected(null); refresh.proposals(); }
