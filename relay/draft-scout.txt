@@ -1,0 +1,94 @@
+=== draft-section-stream.js ===
+import fs from 'fs';
+import path from 'path';
+
+const IS_PRODUCTION = !!process.env.NETLIFY && !process.env.NETLIFY_DEV;
+
+function getApiKey() {
+  const direct = process.env.ANTHROPIC_API_KEY;
+  if (direct) return direct;
+  try {
+    const envContent = fs.readFileSync(path.resolve(process.cwd(), '.env'), 'utf-8');
+    const match = envContent.match(/ANTHROPIC_API_KEY=(.+)/);
+    return match ? match[1].trim() : process.env.ANTHROPIC_API_KEY;
+  } catch(e) { return process.env.ANTHROPIC_API_KEY; }
+}
+
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  try {
+    const { system, userMsg, max_tokens } = await req.json();
+
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: max_tokens || 3000,
+        stream: true,
+        system: system,
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+
+    if (!upstream.ok) {
+      const errText = await upstream.text();
+      return new Response(JSON.stringify({ error: 'Upstream error', detail: errText.substring(0, 300) }), {
+        status: upstream.status, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Parse the SSE stream, extract text deltas, re-emit as a plain text stream
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+    let buffer = '';
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = upstream.body.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const payload = line.slice(6).trim();
+              if (payload === '[DONE]') continue;
+              try {
+                const evt = JSON.parse(payload);
+                if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+                  controller.enqueue(encoder.encode(evt.delta.text));
+                }
+              } catch(e) {}
+            }
+          }
+        } catch(e) {
+          controller.enqueue(encoder.encode('\n[stream error: ' + e.message + ']'));
+        } finally {
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(stream, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' }
+    });
+
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
