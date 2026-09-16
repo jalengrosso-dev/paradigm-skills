@@ -1,0 +1,12 @@
+=== DocsView + operator doc open ===
+254:      const { error } = await supabase.storage.from('documents').upload(path, file);
+259:      const { data, error } = await supabase.storage.from('documents').createSignedUrl(path, 3600);
+264:      const { error } = await supabase.storage.from('documents').remove([path]);
+1219:      const { data, error } = await portalSupabase.storage.from('documents').createSignedUrl(d.file_path, 3600);
+1231:      const { error: upErr } = await portalSupabase.storage.from('documents').upload(path, file);
+4188:function DocsList({ t, docs }) {
+9133:function DocsView({ t, docs, clients, opps, refresh }) {
+
+=== operator doc open handler verbatim ===
+259:       const { data, error } = await supabase.storage.from('documents').createSignedUrl(path, 3600);
+1219:       const { data, error } = await portalSupabase.storage.from('documents').createSignedUrl(d.file_path, 3600);
