@@ -1,0 +1,61 @@
+function PwinPanel({ t, opp, clients, agencies, onSaved }) {
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiReasoning, setAiReasoning] = useState(null);
+
+  const scoreWithAI = async () => {
+    setAiBusy(true);
+    try {
+      let memories = [];
+      try {
+        const memRes = await supabase.from('memories').select('content').or('entity_id.eq.' + opp.id + ',entity_type.eq.agency').order('created_at', { ascending: false }).limit(10);
+        memories = memRes.data || [];
+      } catch(e) {}
+      const client = (clients || []).find(c => c.id === opp.client_id) || null;
+      const agency = (agencies || []).find(a => a.id === opp.agency_id) || null;
+      const res = await fetch('/.netlify/functions/score-pwin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ opportunity: opp, client, agency, memories })
+      });
+      const data = await res.json();
+      if (data.success && data.factors) {
+        setFactors(data.factors);
+        setAiReasoning(data.reasoning || null);
+      } else {
+        alert('AI scoring issue: ' + (data.error || 'unknown'));
+      }
+    } catch(e) { alert('Failed: ' + e.message); }
+    finally { setAiBusy(false); }
+  };
+  const init = opp.pwin_factors || { relationship: 0, pastPerf: 0, advantage: 0, incumbent: 0, capability: 0 };
+  const [factors, setFactors] = useState(init);
+  const [busy, setBusy] = useState(false);
+  const [outcomeBusy, setOutcomeBusy] = useState(false);
+  const total = PWIN_FACTORS.reduce((s, f) => s + (Number(factors[f.key]) || 0), 0);
+  const verdict = pwinVerdict(total, t);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const updated = await db.opps.update(opp.id, { pwin: total, pwin_factors: factors, pwin_scored_at: new Date().toISOString() });
+      onSaved(updated);
+    } catch(e) { alert('Save failed: ' + e.message); }
+    finally { setBusy(false); }
+  };
+
+  const setOutcome = async (outcome) => {
+    let reason = '';
+    if (outcome === 'lost') { reason = prompt('Loss reason (price, technical, past performance, relationship, other)?') || ''; }
+    setOutcomeBusy(true);
+    try {
+      const updated = await db.opps.update(opp.id, { outcome, outcome_reason: reason || null, outcome_date: new Date().toISOString().split('T')[0] });
+      onSaved(updated);
+    } catch(e) { alert('Failed: ' + e.message); }
+    finally { setOutcomeBusy(false); }
+  };
+
+  return (
+    <div style={{ background: t.surface, borderRadius: 12, padding: 20, border: '1px solid ' + t.border, marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 600, margin: 0, color: t.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>pWin Score</h3>
+        <span style={{ fontSize: 20, fontWeight: 700, color: verdict.color }}>{total}% <span style={{ fontSize: 11, fontWeight: 600 }}>· {verdict.label}</span></span>
