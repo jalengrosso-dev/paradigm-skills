@@ -1,0 +1,93 @@
+=== draft-section-stream callers + prompt build ===
+5721:      // FAR/DFARS clauses that require a narrative response in THIS section
+5722:      let clauseBlock = '';
+5725:        const secClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase());
+5727:          clauseBlock = '\n\n=== APPLICABLE FAR/DFARS CLAUSES FOR THIS SECTION ===\nThese clauses require a narrative response in THIS section. Address each explicitly — cite the clause number where it strengthens the response and describe your compliance approach. Do NOT list clauses you are not actively responding to; comply-silently clauses are handled elsewhere.\n' + secClauses.map(c => `- ${c.clause_number}${c.clause_title ? ' ' + c.clause_title : ''}: ${(c.requirement_text || '').substring(0, 300)}`).join('\n');
+5744:        let kpRecords = [];
+5745:        if (client) { try { kpRecords = (await db.keypersonnel.list()).filter(k => k.client_id === client.id); } catch(e) {} }
+5746:        kpCtx = kpRecords.length ? '\nKEY PERSONNEL (use ONLY these real people — never invent names, titles, or credentials):\n' + kpRecords.map(k => `- ${k.name}${k.title ? ', ' + k.title : ''} | Labor category: ${k.labor_category || 'N/A'} | Experience: ${k.years_experience != null ? k.years_experience + ' yrs' : 'N/A'} | Clearance: ${k.clearance || 'N/A'} | Education: ${k.education || 'N/A'} | Certs: ${(k.certifications || []).join(', ') || 'None'} | Bio: ${(k.bio || '').substring(0, 400)}`).join('\n') : '\nNO key personnel records exist for this client. Do NOT invent staff — write role-based staffing language (positions and qualifications required) and note that named personnel should be added to the Key Personnel tab.';
+5773:      const planBlock = (s.content_plan && s.content_plan_status === 'approved') ? (() => {
+5774:        const pl = s.content_plan; const L = [];
+5786:      const userMsg = `Proposal: ${selected.title}\n${clientCtx}\n${oppCtx}\n${ppCtx}${kpCtx}\n\nWrite this section: "${s.title}" (${s.volume}).` + planBlock + clauseBlock + (s.content ? `\n\nExisting draft to improve:\n${s.content}` : '') + (selected.notes ? `\n\nProposal notes: ${selected.notes}` : '');
+5787:      const response = await fetch('/.netlify/functions/draft-section-stream', {
+5823:        planClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase()).map(c => `${c.clause_number}${c.clause_title ? ' ' + c.clause_title : ''}: ${(c.requirement_text || '').substring(0, 300)}`);
+5839:        body: JSON.stringify({ section_title: s.title, section_type: s.volume, rfp_text: opp ? (opp.rfp_full_text || opp.description || '') : '', win_themes: selected.win_themes || [], hot_buttons: (opp && opp.capture && Array.isArray(opp.capture.hot_buttons)) ? opp.capture.hot_buttons.slice().sort((a,b) => (a.rank||99)-(b.rank||99)).slice(0,3).map(h => h.text).filter(Boolean) : [], available_proof_points: proofPoints, applicable_clauses: planClauses, existing_content: s.content || '' })
+5850:    const plan = planDraft[s.id] ?? s.content_plan;
+5853:      const updated = await db.sections.update(s.id, { content_plan: plan, content_plan_status: 'approved', content_plan_approved_at: new Date().toISOString() });
+5903:      const response = await fetch('/.netlify/functions/draft-section-stream', {
+6117:            <button onClick={() => setSubsOpen(true)} title="Subs & partner compliance — flow-down clauses, NDA/SAM checks, workshare, subcontracting plan" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 8, background: 'transparent', color: '#14B8A6', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid ' + t.border }}>
+6185:                      <Sparkles size={11} /> {draftBusy === s.id ? 'Drafting...' : (s.content_plan_status === 'approved' ? (s.content ? 'Redraft from Plan' : 'Draft from Plan') : (s.content ? 'Redraft with AI' : 'Draft from RFP'))}
+6192:                        const status = s.content_plan_status || 'empty';
+6193:                        const plan = planDraft[s.id] ?? s.content_plan ?? null;
+6197:                        const setField = (k, v) => setPlanDraft(prev => ({ ...prev, [s.id]: { ...(planDraft[s.id] ?? s.content_plan ?? {}), [k]: v } }));
+8090:          clause_number: r.clause_number ? String(r.clause_number).substring(0, 40) : null,
+8091:          clause_title: r.clause_title ? String(r.clause_title).substring(0, 300) : null,
+8162:  const filtered = filter === 'all' ? liveReqs : filter === 'open' ? liveReqs.filter(r => r.status === 'Unaddressed' || r.status === 'In Progress') : filter === 'clause' ? liveReqs.filter(r => !!r.clause_number) : filter === 'flowdown' ? liveReqs.filter(r => r.flow_down === true) : liveReqs.filter(r => r.requirement_type === filter);
+8227:            {['all', 'open', 'clause', 'flowdown', 'shall', 'submission', 'evaluation', 'certification'].map(f => (
+8249:                  {r.clause_number && <span title={r.clause_title || 'FAR/DFARS clause'} className="mono" style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#0EA5E920', color: '#0EA5E9' }}>{r.clause_number}</span>}
+8250:                  {r.clause_number && r.by_reference && <span title="Incorporated by reference — clause text is not in the solicitation body. Verify the obligation against the FAR/DFARS." style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#F59E0B20', color: '#F59E0B', textTransform: 'uppercase' }}>By ref</span>}
+8251:                  {r.clause_number && r.narrative_required && <span title="This clause drives proposal content — it needs a narrative response, plan, or citation, not just silent compliance." style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#22C55E20', color: '#22C55E', textTransform: 'uppercase' }}>Narrative</span>}
+8252:                  {r.clause_number && r.flow_down && <span title="Flow-down clause — must be included in all subcontracts. Flag for subcontract/teaming compliance." style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#A855F720', color: '#A855F7', textTransform: 'uppercase' }}>Flow-down</span>}
+
+=== draft context assembly verbatim (around 5700-5760) ===
+  const setStatus = async (status) => {
+    try { await db.proposals.update(selected.id, { status }); setSelected({ ...selected, status }); refresh.proposals(); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const saveSection = async (s) => {
+    setSaveBusy(s.id);
+    try {
+      const updated = await db.sections.update(s.id, { content: editText[s.id] ?? s.content, status: (editText[s.id] ?? s.content) ? 'Drafted' : 'Empty' });
+      setSections(sections.map(x => x.id === s.id ? updated : x));
+    } catch(e) { alert('Failed: ' + e.message); }
+    finally { setSaveBusy(null); }
+  };
+
+  const draftSection = async (s) => {
+    setDraftBusy(s.id);
+    try {
+      const client = clients.find(c => c.id === selected.client_id);
+      const opp = opps.find(o => o.id === selected.opportunity_id);
+      let ppRecords = [];
+      if (client) { try { ppRecords = await db.pastPerf.listByClient(client.id); } catch(e) {} }
+      // FAR/DFARS clauses that require a narrative response in THIS section
+      let clauseBlock = '';
+      try {
+        const allReqs = await db.compliance.listByProposal(selected.id);
+        const secClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase());
+        if (secClauses.length) {
+          clauseBlock = '\n\n=== APPLICABLE FAR/DFARS CLAUSES FOR THIS SECTION ===\nThese clauses require a narrative response in THIS section. Address each explicitly — cite the clause number where it strengthens the response and describe your compliance approach. Do NOT list clauses you are not actively responding to; comply-silently clauses are handled elsewhere.\n' + secClauses.map(c => `- ${c.clause_number}${c.clause_title ? ' ' + c.clause_title : ''}: ${(c.requirement_text || '').substring(0, 300)}`).join('\n');
+        }
+      } catch(e) {}
+      let skillContent = null;
+      try {
+        const skillRes = await fetch('/.netlify/functions/fetch-skill', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agent_id: 'proposal' })
+        });
+        const skillData = await skillRes.json();
+        if (skillData.skill) skillContent = skillData.skill;
+      } catch(e) {}
+      const clientCtx = client ? `CLIENT: ${client.name} | Industry: ${client.industry || 'N/A'} | NAICS: ${(client.naics || []).join(', ') || 'N/A'} | Certifications: ${(client.certifications || []).filter(x => x.status === 'active').map(x => x.type).join(', ') || 'None'}` : 'No client linked.';
+      const oppCtx = opp ? `OPPORTUNITY: ${opp.title} | Solicitation: ${opp.solicitation_number || 'N/A'} | Agency: ${opp.agency || 'N/A'} | Description: ${(opp.description || '').substring(0, 1500)}` : 'No opportunity linked.';
+      const ppCtx = ppRecords.length ? 'PAST PERFORMANCE RECORDS (use ONLY these — never invent contracts):\n' + ppRecords.map(r => `- ${r.title} | Contract: ${r.contract_number || 'N/A'} | Agency: ${r.agency || 'N/A'} | Value: $${r.contract_value ? Number(r.contract_value).toLocaleString() : 'N/A'} | Period: ${r.period_start || '?'} to ${r.period_end || 'present'} | Type: ${r.contract_type || 'N/A'} | NAICS: ${r.naics || 'N/A'} | Rating: ${r.cpars_rating || 'N/A'} | Scope: ${(r.scope || '').substring(0, 300)} | Highlights: ${(r.highlights || '').substring(0, 300)} | Reference: ${r.reference_name || 'N/A'}${r.reference_title ? ', ' + r.reference_title : ''}`).join('\n') : 'NO documented past performance records exist for this client. Do NOT invent any contracts, values, or references — write the section using capability-based language instead, or state that records should be added to the Past Performance tab.';
+      let kpCtx = '';
+      if (/key personnel|staffing|resume/i.test(s.title)) {
+        let kpRecords = [];
+        if (client) { try { kpRecords = (await db.keypersonnel.list()).filter(k => k.client_id === client.id); } catch(e) {} }
+        kpCtx = kpRecords.length ? '\nKEY PERSONNEL (use ONLY these real people — never invent names, titles, or credentials):\n' + kpRecords.map(k => `- ${k.name}${k.title ? ', ' + k.title : ''} | Labor category: ${k.labor_category || 'N/A'} | Experience: ${k.years_experience != null ? k.years_experience + ' yrs' : 'N/A'} | Clearance: ${k.clearance || 'N/A'} | Education: ${k.education || 'N/A'} | Certs: ${(k.certifications || []).join(', ') || 'None'} | Bio: ${(k.bio || '').substring(0, 400)}`).join('\n') : '\nNO key personnel records exist for this client. Do NOT invent staff — write role-based staffing language (positions and qualifications required) and note that named personnel should be added to the Key Personnel tab.';
+      }
+      // Library retrieval — pull top 3 approved snippets relevant to this section
+      let libraryContext = '';
+      let topGapScore = 0;
+      let topMatchId = null;
+      const GAP_THRESHOLD = 0.35;
+      try {
+          const libQuery = `${s.title} ${s.volume} ${selected.title} ${selected.notes || ''} ${opp ? opp.title : ''}`.trim();
+          const libRes = await fetch('/.netlify/functions/library-search', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: libQuery, client_id: selected.client_id || null, match_count: 3, similarity_threshold: 0.0 })
+          });
+          const libData = await libRes.json();
+          if (libData.success && libData.matches && libData.matches.length > 0) {
