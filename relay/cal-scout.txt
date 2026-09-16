@@ -1,0 +1,126 @@
+=== CalendarView location ===
+5254:function CalendarView({ t, events, opps }) {
+
+=== CalendarView verbatim (first 110 lines) ===
+5254: function CalendarView({ t, events, opps }) {
+5255:   const [view, setView] = useState('month');
+5256:   const [date, setDate] = useState(new Date());
+5257:   const oppDeadlines = opps.filter(o => !['Won','Lost'].includes(o.stage)).map(o => ({ id: `o-${o.id}`, title: `${o.solicitation_number} — DUE`, event_date: o.due_date, event_time: '17:00', type: 'rfp-deadline' }));
+5258:   const allEvents = [...events, ...oppDeadlines];
+5259:   const monthDays = (() => {
+5260:     const y = date.getFullYear(), m = date.getMonth();
+5261:     const first = new Date(y, m, 1); const last = new Date(y, m + 1, 0);
+5262:     const days = [];
+5263:     for (let i = 0; i < first.getDay(); i++) days.push(null);
+5264:     for (let i = 1; i <= last.getDate(); i++) days.push(new Date(y, m, i));
+5265:     return days;
+5266:   })();
+5267:   const todayStr = new Date().toISOString().split('T')[0];
+5268:   const cTypes = { deadline: t.danger, meeting: t.success, briefing: t.info, milestone: t.purple, 'rfp-deadline': t.warning };
+5269:   return (
+5270:     <div className="fade-in" style={{ padding: 32, maxWidth: 1400, margin: '0 auto' }}>
+5271:       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+5272:         <div>
+5273:           <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>Calendar</h1>
+5274:           <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>Built-in deadline + meeting tracker</p>
+5275:         </div>
+5276:         <div style={{ display: 'flex', background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, padding: 3 }}>
+5277:           {['month', 'list'].map(v => <button key={v} onClick={() => setView(v)} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: view === v ? t.accent : 'transparent', color: view === v ? '#0A0B0E' : t.textSec, textTransform: 'capitalize', cursor: 'pointer' }}>{v}</button>)}
+5278:         </div>
+5279:       </div>
+5280:       <div style={{ background: t.surface, borderRadius: 12, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+5281:         <div style={{ padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${t.border}` }}>
+5282:           <button onClick={() => setDate(new Date(date.getFullYear(), date.getMonth() - 1, 1))} style={{ padding: 6, borderRadius: 6, color: t.textSec, cursor: 'pointer' }}><ChevronLeft size={16} /></button>
+5283:           <h2 className="display" style={{ fontSize: 20, fontWeight: 600, margin: 0, color: t.text }}>{date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
+5284:           <button onClick={() => setDate(new Date(date.getFullYear(), date.getMonth() + 1, 1))} style={{ padding: 6, borderRadius: 6, color: t.textSec, cursor: 'pointer' }}><ChevronLeft size={16} style={{ transform: 'rotate(180deg)' }} /></button>
+5285:         </div>
+5286:         {view === 'month' ? (
+5287:           <div>
+5288:             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${t.border}` }}>
+5289:               {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} style={{ padding: '10px 12px', fontSize: 11, color: t.textTer, fontWeight: 500, textAlign: 'center', textTransform: 'uppercase' }}>{d}</div>)}
+5290:             </div>
+5291:             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+5292:               {monthDays.map((d, i) => {
+5293:                 if (!d) return <div key={i} style={{ minHeight: 100, borderRight: `1px solid ${t.borderSubtle}`, borderBottom: `1px solid ${t.borderSubtle}`, background: t.bgSubtle }} />;
+5294:                 const dStr = d.toISOString().split('T')[0];
+5295:                 const dayEvents = allEvents.filter(e => e.event_date === dStr);
+5296:                 const isToday = dStr === todayStr;
+5297:                 return (
+5298:                   <div key={i} style={{ minHeight: 100, padding: 6, borderRight: `1px solid ${t.borderSubtle}`, borderBottom: `1px solid ${t.borderSubtle}`, background: isToday ? t.accentDim : 'transparent' }}>
+5299:                     <div className="mono" style={{ fontSize: 11, color: isToday ? t.accent : t.text, fontWeight: isToday ? 600 : 400, marginBottom: 4 }}>{d.getDate()}</div>
+5300:                     {dayEvents.slice(0, 3).map(e => <div key={e.id} style={{ padding: '3px 6px', borderRadius: 3, marginBottom: 2, fontSize: 9, color: cTypes[e.type], background: `${cTypes[e.type]}15`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title}</div>)}
+5301:                   </div>
+5302:                 );
+5303:               })}
+5304:             </div>
+5305:           </div>
+5306:         ) : (
+5307:           <div>
+5308:             {allEvents.sort((a, b) => new Date(a.event_date) - new Date(b.event_date)).map((e, i) => (
+5309:               <div key={e.id} style={{ padding: 16, display: 'flex', gap: 16, alignItems: 'center', borderBottom: i < allEvents.length - 1 ? `1px solid ${t.borderSubtle}` : 'none' }}>
+5310:                 <div style={{ width: 60, textAlign: 'center', flexShrink: 0 }}>
+5311:                   <div className="mono" style={{ fontSize: 11, color: t.textTer }}>{new Date(e.event_date).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</div>
+5312:                   <div className="display" style={{ fontSize: 22, fontWeight: 600, color: t.text }}>{new Date(e.event_date).getDate()}</div>
+5313:                 </div>
+5314:                 <div style={{ flex: 1 }}>
+5315:                   <div style={{ fontSize: 13, color: t.text, fontWeight: 500, marginBottom: 4 }}>{e.title}</div>
+5316:                   <div className="mono" style={{ fontSize: 11, color: t.textSec }}>{e.event_time}</div>
+5317:                 </div>
+5318:                 <span style={{ padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 500, background: `${cTypes[e.type]}15`, color: cTypes[e.type] }}>{e.type}</span>
+5319:               </div>
+5320:             ))}
+5321:           </div>
+5322:         )}
+5323:       </div>
+5324:     </div>
+5325:   );
+5326: }
+5327: 
+5328: function TasksView({ t, tasks, setTasks, clients, refresh }) {
+5329:   const toggle = async (task) => {
+5330:     setTasks(tasks.map(x => x.id === task.id ? { ...x, completed: !x.completed } : x));
+5331:     try { await db.tasks.update(task.id, { completed: !task.completed }); }
+5332:     catch (e) { refresh.tasks(); }
+5333:   };
+5334:   return (
+5335:     <div className="fade-in" style={{ padding: 32, maxWidth: 1200, margin: '0 auto' }}>
+5336:       <div style={{ marginBottom: 24 }}>
+5337:         <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>Tasks</h1>
+5338:         <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>{tasks.filter(x => !x.completed).length} open · {tasks.filter(x => x.completed).length} completed</p>
+5339:       </div>
+5340:       <div style={{ background: t.surface, borderRadius: 12, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+5341:         {tasks.length === 0 ? <div style={{ padding: 40, textAlign: 'center', color: t.textTer, fontSize: 13 }}>No tasks yet.</div> : tasks.map((task, i) => {
+5342:           const client = task.client_id ? clients.find(c => c.id === task.client_id) : null;
+5343:           return (
+5344:             <div key={task.id} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14, borderBottom: i < tasks.length - 1 ? `1px solid ${t.borderSubtle}` : 'none', opacity: task.completed ? 0.5 : 1 }}>
+5345:               <button onClick={() => toggle(task)} style={{ width: 20, height: 20, borderRadius: 5, border: `1.5px solid ${task.completed ? t.success : t.borderStrong}`, background: task.completed ? t.success : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}>
+5346:                 {task.completed && <Check size={13} color="#0A0B0E" strokeWidth={3} />}
+5347:               </button>
+5348:               <div style={{ flex: 1 }}>
+5349:                 <div style={{ fontSize: 13, color: t.text, fontWeight: 500, textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</div>
+5350:                 <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+5351:                   {client && <span style={{ fontSize: 11, color: t.textTer }}>{client.name}</span>}
+5352:                   <span className="mono" style={{ fontSize: 11, color: t.textTer }}>Due {fmtDate(task.due_date)}</span>
+5353:                 </div>
+5354:               </div>
+5355:               <span style={{ padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 500, background: task.priority === 'high' ? `${t.danger}15` : task.priority === 'medium' ? `${t.warning}15` : `${t.info}15`, color: task.priority === 'high' ? t.danger : task.priority === 'medium' ? t.warning : t.info }}>{task.priority}</span>
+5356:             </div>
+5357:           );
+5358:         })}
+5359:       </div>
+5360:     </div>
+5361:   );
+5362: }
+5363: 
+5364: 
+
+=== events db helpers ===
+235:  events: {
+236-    list: async () => { const { data, error } = await supabase.from('events').select('*').order('event_date'); if (error) throw error; return data || []; },
+237-    create: async (row) => { const { data, error } = await supabase.from('events').insert(row).select().single(); if (error) throw error; return data; },
+238-  },
+239-  docs: {
+
+=== tasks due_date usage ===
+2255:    try { await db.tasks.update(task.id, { completed: !task.completed }); }
+5331:    try { await db.tasks.update(task.id, { completed: !task.completed }); }
