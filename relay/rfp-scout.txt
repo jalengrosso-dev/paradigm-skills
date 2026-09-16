@@ -1,0 +1,73 @@
+=== netlify functions inventory ===
+apollo-surety-search.js
+archive-embed.js
+claude.js
+cleanup-demo.js
+content-plan-generate.js
+draft-section-stream.js
+expiring-contracts.js
+extract-requirements.js
+fetch-skill.js
+generate-outreach-drafts.js
+ingest-opportunities-background.js
+ingest-opportunities-cron.js
+ingest-subnet.js
+library-embed.js
+library-promote-wins.js
+library-search.js
+library-seed.js
+memory-writer.js
+morning-digest-cron.js
+orals-prep.js
+proofpoint-embed.js
+proofpoint-search.js
+proposal-archive-search.js
+recurring-revenue-cron.js
+rescore-background.js
+sam-search.js
+score-opportunity.js
+score-prospect.js
+score-pwin.js
+search-memories.js
+seed-nationwide-prospects.js
+send-email.js
+send-invite.js
+signwell.js
+successai-webhook.js
+successai.js
+trigger-checker-background.js
+trigger-checker-cron.js
+usaspending-check.js
+weekly-briefing-background.js
+
+=== compliance matrix code ===
+6043:        {cmPanel && <ComplianceMatrixPanel t={t} proposal={selected} sections={sections} onClose={() => setCmPanel(false)} />}
+7431:function ComplianceMatrixPanel({ t, proposal, sections, onClose }) {
+7464:        writeMemory({ entity_type: 'proposal', entity_id: proposal.id, entity_name: proposal.title, memory_type: 'compliance_extraction', content: 'Compliance matrix generated for ' + proposal.title + ': ' + (data.count || 0) + ' requirements extracted from solicitation text.', source: 'compliance_matrix' });
+
+=== content plan + outline ===
+337:    listByProposal: async (pid) => { const { data, error } = await supabase.from('proposal_sections').select('*').eq('proposal_id', pid).order('section_order'); if (error) throw error; return data || []; },
+338:    createMany: async (rows) => { const { data, error } = await supabase.from('proposal_sections').insert(rows).select(); if (error) throw error; return data; },
+339:    update: async (id, patch) => { const { data, error } = await supabase.from('proposal_sections').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single(); if (error) throw error; return data; },
+4750:    proposal_sections: { technical: 0, management: 0, pastPerf: 0, price: 0 }
+5144:  const ps = o.proposal_sections || { technical: 0, management: 0, pastPerf: 0, price: 0 };
+5366:const SECTION_TEMPLATE = [
+5403:  { id: 'proposal', label: 'Full Proposal', template: SECTION_TEMPLATE },
+5679:      const planBlock = (s.content_plan && s.content_plan_status === 'approved') ? (() => {
+5680:        const pl = s.content_plan; const L = [];
+5756:    const plan = planDraft[s.id] ?? s.content_plan;
+5759:      const updated = await db.sections.update(s.id, { content_plan: plan, content_plan_status: 'approved', content_plan_approved_at: new Date().toISOString() });
+6079:                      <Sparkles size={11} /> {draftBusy === s.id ? 'Drafting...' : (s.content_plan_status === 'approved' ? (s.content ? 'Redraft from Plan' : 'Draft from Plan') : (s.content ? 'Redraft with AI' : 'Draft from RFP'))}
+6086:                        const status = s.content_plan_status || 'empty';
+6087:                        const plan = planDraft[s.id] ?? s.content_plan ?? null;
+6091:                        const setField = (k, v) => setPlanDraft(prev => ({ ...prev, [s.id]: { ...(planDraft[s.id] ?? s.content_plan ?? {}), [k]: v } }));
+7086:  const plannedCount = sections.filter(s => s.content_plan_status === 'approved').length;
+7121:      const pl = (s.content_plan_status === 'approved') ? s.content_plan : null;
+7183:              const pl = (s.content_plan_status === 'approved') ? s.content_plan : null;
+
+=== rfp analysis entry points ===
+85:  { id: 'scanner', name: 'Document Scanner', short: 'DS', icon: FileText, color: '#A78BFA', description: 'Parses RFPs with 3-pass framework. Builds compliance matrices.' },
+5164:          <button onClick={() => openAgent('scanner', { type: 'opportunity', id })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: t.surface, color: t.text, border: `1px solid ${t.border}`, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><FileText size={13} /> Analyze RFP</button>
+7451:      const res = await fetch('/.netlify/functions/extract-requirements', {
+
+=== requirements table ===
