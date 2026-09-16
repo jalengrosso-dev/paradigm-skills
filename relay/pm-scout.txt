@@ -1,0 +1,69 @@
+=== client_milestones + client_requests db helpers ===
+268:  clientRequests: {
+269:    listByClient: async (cid) => { const { data, error } = await supabase.from('client_requests').select('*').eq('client_id', cid).order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+270:    create: async (row) => { const { data, error } = await supabase.from('client_requests').insert(row).select().single(); if (error) throw error; return data; },
+271:    remove: async (id) => { const { error } = await supabase.from('client_requests').delete().eq('id', id); if (error) throw error; },
+274:    listByClient: async (cid) => { const { data, error } = await supabase.from('client_milestones').select('*').eq('client_id', cid).order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+275:    create: async (row) => { const { data, error } = await supabase.from('client_milestones').insert(row).select().single(); if (error) throw error; return data; },
+276:    remove: async (id) => { const { error } = await supabase.from('client_milestones').delete().eq('id', id); if (error) throw error; },
+1024:          portalSupabase.from('client_requests').select('*').eq('status', 'open').order('created_at')
+1034:      await portalSupabase.from('client_requests').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', r.id);
+1284:          portalSupabase.from('client_milestones').select('*').order('created_at', { ascending: false })
+1782:    try { setRequests(await db.clientRequests.listByClient(clientId)); } catch(e) {}
+1790:      await db.clientRequests.create({ client_id: clientId, title: title.trim(), detail: detail.trim() || null });
+1799:    try { await db.clientRequests.remove(r.id); load(); } catch(e) { alert('Failed: ' + e.message); }
+
+=== PortalDashboard client_requests usage (1015-1110) ===
+function PortalDashboard({ T, client, role }) {
+  const [opps, setOpps] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [{ data: o }, { data: rq }] = await Promise.all([
+          portalSupabase.from('opportunities').select('*'),
+          portalSupabase.from('client_requests').select('*').eq('status', 'open').order('created_at')
+        ]);
+        setOpps(o || []); setRequests(rq || []);
+      }
+      catch(e) {} finally { setLoading(false); }
+    })();
+  }, []);
+
+  const markDone = async (r) => {
+    try {
+      await portalSupabase.from('client_requests').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', r.id);
+      setRequests(requests.filter(x => x.id !== r.id));
+    } catch(e) { alert('Could not update: ' + e.message); }
+  };
+
+  if (loading) return <div style={{ color: T.textTer, fontSize: 13 }}>Loading...</div>;
+  if (!client) return <div style={{ color: T.textTer, fontSize: 13 }}>No data available.</div>;
+
+  const activeOpps = opps.filter(o => !['Won','Lost'].includes(o.stage));
+  const wonOpps = opps.filter(o => o.stage === 'Won');
+  const pipelineValue = activeOpps.reduce((s, o) => s + Number(o.estimated_value || 0), 0);
+  const wonValue = wonOpps.reduce((s, o) => s + Number(o.estimated_value || 0), 0);
+  const phase = client.phase || 1;
+
+  const kpis = [
+    { label: 'Current Phase', value: 'Phase ' + phase, sub: PORTAL_PHASES[phase] || '', color: T.accent },
+    { label: 'Active Pipeline', value: portalMoney(pipelineValue), sub: activeOpps.length + ' opportunities', color: T.info },
+
+=== does operator have a milestones/requests UI? ===
+269:    listByClient: async (cid) => { const { data, error } = await supabase.from('client_requests').select('*').eq('client_id', cid).order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+270:    create: async (row) => { const { data, error } = await supabase.from('client_requests').insert(row).select().single(); if (error) throw error; return data; },
+271:    remove: async (id) => { const { error } = await supabase.from('client_requests').delete().eq('id', id); if (error) throw error; },
+273:  milestones: {
+274:    listByClient: async (cid) => { const { data, error } = await supabase.from('client_milestones').select('*').eq('client_id', cid).order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+275:    create: async (row) => { const { data, error } = await supabase.from('client_milestones').insert(row).select().single(); if (error) throw error; return data; },
+276:    remove: async (id) => { const { error } = await supabase.from('client_milestones').delete().eq('id', id); if (error) throw error; },
+657:    'Log every milestone and client request from the detail page so agents have full context.'
+706:    'Post-award lifecycle: deliverables/CDRLs, option years, and CPARS milestones per contract.',
+708:    'Re-engage the CO 90 days before each option year — the milestone tracker reminds you.',
+1275:  // Activity from opportunities stage changes isn't tracked per-row here; we surface opportunity milestones + client phase
+1278:  const [milestones, setMilestones] = useState([]);
+1286:        setOpps(o || []); setMilestones(m || []);
+1296:  milestones.forEach(m => {
+1768:      <MilestoneLogger t={t} clientId={clientId} />
