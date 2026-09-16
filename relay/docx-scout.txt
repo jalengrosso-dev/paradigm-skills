@@ -1,0 +1,32 @@
+=== docx export functions ===
+15:import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak, Table, TableRow, TableCell, WidthType, ShadingType } from 'docx';
+3870:        {tpl && tpl.files.length > 1 && <div style={{ fontSize: 10, color: t.textTer, marginTop: 5 }}>Includes {tpl.files.length} documents: {tpl.files.map(f => f.replace(/^Paradigm_\d+_/, '').replace(/\.docx$/, '').replace(/_/g, ' ')).join(' · ')}</div>}
+5555:      const doc = new Document({ creator: 'Paradigm Universe', title: proposal.title + ' — Deliverables Matrix', sections: [{ properties: { page: { size: { width: 12240, height: 15840 } } }, children }] });
+5556:      const blob = await Packer.toBlob(doc);
+5558:      saveAs(blob, 'RR_Matrix_' + proposal.title.replace(/[^a-zA-Z0-9._-]+/g, '_') + '_' + stamp + '.docx');
+5574:            <button onClick={exportMatrix} disabled={exportBusy} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: exportBusy ? 0.6 : 1 }}><Download size={13} /> {exportBusy ? 'Building...' : 'Export .docx'}</button>
+5951:  const exportProposal = async () => {
+5991:      const doc = new Document({
+5996:      const blob = await Packer.toBlob(doc);
+5997:      const filename = selected.title.replace(/[^a-zA-Z0-9._-]+/g, '_') + '_v' + new Date().toISOString().split('T')[0] + '.docx';
+6003:  const assemblePackage = async (pf) => {
+6055:      const doc = new Document({ creator: 'Paradigm Universe', title: selected.title, sections: [{ properties: {}, children }] });
+6056:      const blob = await Packer.toBlob(doc);
+6058:      const filename = 'SUBMITTED_' + selected.title.replace(/[^a-zA-Z0-9._-]+/g, '_') + '_' + stamp + '.docx';
+6135:            <button onClick={exportProposal} disabled={exportBusy} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+6136:              <Download size={13} /> {exportBusy ? 'Building...' : 'Export .docx'}
+6168:        {preflightOpen && <PreflightModal t={t} proposal={selected} sections={sections} opp={opps.find(o => o.id === selected.opportunity_id)} onClose={() => setPreflightOpen(false)} onAssemble={assemblePackage} />}
+6330:  // Returns an array of docx elements for one person's one-page resume.
+6364:async function downloadResume(kp) {
+6367:  const doc = new Document({ creator: 'Paradigm Universe', title: (kp.name || 'Resume') + ' — Resume', sections: [{ properties: { page: { size: { width: 12240, height: 15840 } } }, children }] });
+6368:  const blob = await Packer.toBlob(doc);
+6370:  saveAs(blob, 'Resume_' + (kp.name || 'person').replace(/[^a-zA-Z0-9._-]+/g, '_') + '_' + stamp + '.docx');
+6463:                <button onClick={() => downloadResume(kp)} style={{ fontSize: 12, color: t.accent, cursor: 'pointer', fontWeight: 500 }}>Resume</button>
+7010:      const doc = new Document({ creator: 'Paradigm Universe', title: (proposal.title || 'Proposal') + ' — Orals Prep', sections: [{ properties: { page: { size: { width: 12240, height: 15840 } } }, children }] });
+7011:      const blob = await Packer.toBlob(doc);
+7013:      saveAs(blob, 'OralsPrep_' + (proposal.title || 'proposal').replace(/[^a-zA-Z0-9._-]+/g, '_') + '_' + stamp + '.docx');
+7030:            {result && <button onClick={exportDoc} disabled={exportBusy} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: exportBusy ? 0.6 : 1 }}><Download size={13} /> {exportBusy ? '...' : '.docx'}</button>}
+
+=== proposal export builder verbatim ===
+6003:  const assemblePackage = async (pf) => {
+6168:        {preflightOpen && <PreflightModal t={t} proposal={selected} sections={sections} opp={opps.find(o => o.id === selected.opportunity_id)} onClose={() => setPreflightOpen(false)} onAssemble={assemblePackage} />}
