@@ -1,0 +1,35 @@
+=== skill fetch occurrences ===
+5732:        const skillRes = await fetch('/.netlify/functions/fetch-skill', {
+5881:        const skillRes = await fetch('/.netlify/functions/fetch-skill', {
+11275:      const r = await fetch('/.netlify/functions/fetch-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent_id: 'orchestrator' }) });
+11546:        const skillRes = await fetch("/.netlify/functions/fetch-skill", {
+
+=== context around draftSection skill fetch (5745-5770) ===
+        if (client) { try { kpRecords = (await db.keypersonnel.list()).filter(k => k.client_id === client.id); } catch(e) {} }
+        kpCtx = kpRecords.length ? '\nKEY PERSONNEL (use ONLY these real people — never invent names, titles, or credentials):\n' + kpRecords.map(k => `- ${k.name}${k.title ? ', ' + k.title : ''} | Labor category: ${k.labor_category || 'N/A'} | Experience: ${k.years_experience != null ? k.years_experience + ' yrs' : 'N/A'} | Clearance: ${k.clearance || 'N/A'} | Education: ${k.education || 'N/A'} | Certs: ${(k.certifications || []).join(', ') || 'None'} | Bio: ${(k.bio || '').substring(0, 400)}`).join('\n') : '\nNO key personnel records exist for this client. Do NOT invent staff — write role-based staffing language (positions and qualifications required) and note that named personnel should be added to the Key Personnel tab.';
+      }
+      // Library retrieval — pull top 3 approved snippets relevant to this section
+      let libraryContext = '';
+      let topGapScore = 0;
+      let topMatchId = null;
+      const GAP_THRESHOLD = 0.35;
+      try {
+          const libQuery = `${s.title} ${s.volume} ${selected.title} ${selected.notes || ''} ${opp ? opp.title : ''}`.trim();
+          const libRes = await fetch('/.netlify/functions/library-search', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: libQuery, client_id: selected.client_id || null, match_count: 3, similarity_threshold: 0.0 })
+          });
+          const libData = await libRes.json();
+          if (libData.success && libData.matches && libData.matches.length > 0) {
+            topGapScore = libData.matches[0].similarity || 0;
+            topMatchId = libData.matches[0].id;
+            // Only weave snippets in if they cross the floor; weaker matches still get tracked for gap analysis
+            const usableMatches = libData.matches.filter(m => m.similarity >= 0.25).slice(0, 2);
+            if (usableMatches.length > 0) {
+              libraryContext = '\n\nAPPROVED CONTENT LIBRARY (use this language and substance — do not invent contradictory facts):\n' +
+                usableMatches.map((m, i) => `[Snippet ${i+1} — ${m.title} | category: ${m.category}]\n${(m.content || '').substring(0, 800)}`).join('\n\n');
+            }
+          }
+      } catch(e) {}
+
+      const sys = (skillContent ? skillContent + '\n\n' : '') + 'You are the Proposal Builder agent. Write the requested proposal section in professional federal proposal prose. Solution-oriented, specific, evaluator-focused. No preamble, no markdown headers — return only the section text, ready to paste into the proposal.' + libraryContext;
