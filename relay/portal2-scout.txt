@@ -1,0 +1,68 @@
+=== PortalDocuments verbatim ===
+1168: function PortalDocuments({ T }) {
+1169:   const [docs, setDocs] = useState([]);
+1170:   const [loading, setLoading] = useState(true);
+1171:   useEffect(() => {
+1172:     (async () => {
+1173:       try { const { data } = await portalSupabase.from('documents').select('*').order('last_modified', { ascending: false }); setDocs(data || []); }
+1174:       catch(e) {} finally { setLoading(false); }
+1175:     })();
+1176:   }, []);
+1177: 
+1178:   const open = async (d) => {
+1179:     try {
+1180:       const { data, error } = await portalSupabase.storage.from('documents').createSignedUrl(d.file_path, 3600);
+1181:       if (error) throw error;
+1182:       window.open(data.signedUrl, '_blank');
+1183:     } catch(e) { alert('Could not open file: ' + e.message); }
+1184:   };
+1185: 
+1186:   if (loading) return <div style={{ color: T.textTer, fontSize: 13 }}>Loading...</div>;
+1187: 
+1188:   return (
+1189:     <div>
+1190:       <h1 style={{ color: T.text, fontSize: 22, fontWeight: 600, margin: '0 0 4px' }}>Documents</h1>
+1191:       <p style={{ color: T.textSec, fontSize: 13, margin: '0 0 20px' }}>Files we've shared with you.</p>
+1192:       {docs.length === 0 ? (
+1193:         <PortalCard T={T} style={{ textAlign: 'center', padding: 48 }}>
+1194:           <div style={{ color: T.textTer, fontSize: 13 }}>No documents shared yet.</div>
+1195:         </PortalCard>
+1196:       ) : (
+1197:         <div style={{ display: 'grid', gap: 8 }}>
+1198:           {docs.map(d => (
+1199:             <PortalCard key={d.id} T={T} style={{ padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+1200:               <div style={{ minWidth: 0 }}>
+1201:                 <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{d.name}</div>
+1202:                 <div style={{ fontSize: 11, color: T.textTer, marginTop: 2 }}>{d.type}{d.last_modified ? ' · ' + portalDate(d.last_modified) : ''}</div>
+1203:               </div>
+1204:               {d.file_path && <button onClick={() => open(d)} style={{ padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 500, background: T.accent, color: '#0A0B0E', border: 'none', cursor: 'pointer', flexShrink: 0 }}>Open</button>}
+1205:             </PortalCard>
+1206:           ))}
+1207:         </div>
+1208:       )}
+1209:     </div>
+1210:   );
+1211: }
+1212: 
+1213: function PortalActivity({ T, client }) {
+1214:   // Activity from opportunities stage changes isn't tracked per-row here; we surface opportunity milestones + client phase
+1215:   const [opps, setOpps] = useState([]);
+1216:   const [loading, setLoading] = useState(true);
+1217:   const [milestones, setMilestones] = useState([]);
+1218:   useEffect(() => {
+1219:     (async () => {
+1220:       try {
+1221:         const [{ data: o }, { data: m }] = await Promise.all([
+1222:           portalSupabase.from('opportunities').select('*').order('last_activity', { ascending: false }),
+1223:           portalSupabase.from('client_milestones').select('*').order('created_at', { ascending: false })
+
+=== portalMoney/portalDate/PortalCard helpers ===
+970:function portalMoney(n) { const v = Number(n || 0); if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M'; if (v >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K'; return '$' + v; }
+971:function portalDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch(e) { return '—'; } }
+973:function PortalCard({ T, children, style }) {
+
+=== does opportunity-detail show notes? ===
+2132:function NotesSection({ t, entityType, entityId }) {
+2950:          <NotesSection t={t} entityType="lead" entityId={id} />
+3646:      {tab === 'notes' && <NotesSection t={t} entityType="client" entityId={id} />}
+4511:          <NotesSection t={t} entityType="agency" entityId={id} />
