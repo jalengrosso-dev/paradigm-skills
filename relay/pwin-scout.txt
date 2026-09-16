@@ -1,0 +1,114 @@
+=== PWIN_FACTORS + verdict verbatim ===
+4781:const PWIN_FACTORS = [
+4782-  { key: 'relationship', label: 'Agency relationship strength', max: 30 },
+4783-  { key: 'pastPerf', label: 'Relevant past performance match', max: 25 },
+4784-  { key: 'advantage', label: 'Set-aside / vehicle advantage', max: 20 },
+4785-  { key: 'incumbent', label: 'Incumbent vulnerability', max: 15 },
+4786-  { key: 'capability', label: 'Internal capability match', max: 10 },
+4787-];
+4788-
+4789-function pwinVerdict(pct, t) {
+
+=== PwinPanel init line ===
+4824:  const init = opp.pwin_factors || { relationship: 0, pastPerf: 0, advantage: 0, incumbent: 0, capability: 0 };
+
+=== score-pwin function ===
+      98 netlify/functions/score-pwin.js
+import fs from 'fs';
+import path from 'path';
+
+const IS_PRODUCTION = !!process.env.NETLIFY && !process.env.NETLIFY_DEV;
+
+function getApiKey() {
+  const direct = process.env.ANTHROPIC_API_KEY;
+  if (direct) return direct;
+  try {
+    const envContent = fs.readFileSync(path.resolve(process.cwd(), '.env'), 'utf-8');
+    const match = envContent.match(/ANTHROPIC_API_KEY=(.+)/);
+    return match ? match[1].trim() : process.env.ANTHROPIC_API_KEY;
+  } catch(e) { return process.env.ANTHROPIC_API_KEY; }
+}
+
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  try {
+    const { opportunity, client, agency, memories } = await req.json();
+    if (!opportunity) {
+      return new Response(JSON.stringify({ error: 'opportunity required' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const prompt = `You are the Winning Strategy agent for a GovCon consultancy. Score this opportunity's pWin using the 5-factor model. Be conservative and evidence-based — score only on what the data supports, not optimism.
+
+FACTORS AND RANGES:
+1. relationship (0-30): Agency relationship strength. Touchpoints, briefings held, known POCs, past work with this agency.
+2. pastPerf (0-25): Relevant past performance match. Similar scope, agency, contract size, recency.
+3. advantage (0-20): Set-aside / vehicle advantage. Does the client's certification match the set-aside? Reduced competition?
+4. incumbent (0-15): Incumbent vulnerability. No incumbent = higher. Weak/troubled incumbent = higher. Strong entrenched incumbent = low.
+5. capability (0-10): Internal capability match. Can they actually perform this scope with current capacity?
+
+OPPORTUNITY:
+${JSON.stringify(opportunity, null, 2)}
+
+CLIENT:
+${JSON.stringify(client || 'No client data', null, 2)}
+
+AGENCY RELATIONSHIP:
+${JSON.stringify(agency || 'No agency data', null, 2)}
+
+RELEVANT INTELLIGENCE FROM MEMORY:
+${(memories || []).map(m => '- ' + m.content).join('\n') || 'None'}
+
+Respond ONLY with JSON, no markdown fences:
+{"relationship": <0-30>, "pastPerf": <0-25>, "advantage": <0-20>, "incumbent": <0-15>, "capability": <0-10>, "reasoning": {"relationship": "<1 sentence>", "pastPerf": "<1 sentence>", "advantage": "<1 sentence>", "incumbent": "<1 sentence>", "capability": "<1 sentence>"}}`;
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const claudeData = await claudeRes.json();
+    const text = (claudeData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    let scores;
+    try {
+      scores = JSON.parse(text.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      return new Response(JSON.stringify({ error: 'Parse failed', raw: text.substring(0, 300) }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const clamp = (v, max) => Math.max(0, Math.min(max, Number(v) || 0));
+    return new Response(JSON.stringify({
+      success: true,
+      factors: {
+        relationship: clamp(scores.relationship, 30),
+        pastPerf: clamp(scores.pastPerf, 25),
+        advantage: clamp(scores.advantage, 20),
+        incumbent: clamp(scores.incumbent, 15),
+        capability: clamp(scores.capability, 10)
+      },
+      reasoning: scores.reasoning || {}
+    }), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
