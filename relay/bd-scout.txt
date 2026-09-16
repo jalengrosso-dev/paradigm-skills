@@ -1,0 +1,60 @@
+=== client detail tabs verbatim ===
+                {m.next_step && <div style={{ fontSize: 12 }}><span style={{ color: t.textTer }}>Next: </span><span style={{ color: t.textSec }}>{m.next_step}{m.next_step_due ? ` (by ${m.next_step_due})` : ''}</span></div>}
+              </div>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  );
+}
+
+
+function ClientDetail({ t, id, clients, opps, contacts, agencies, docs, navigate, openAgent, refresh }) {
+  const [tab, setTab] = useState('overview');
+  const [editing, setEditing] = useState(false);
+  const [pocs, setPocs] = useState([]);
+  const [pocsLoading, setPocsLoading] = useState(true);
+  const c = clients.find(x => x.id === id);
+  const co = opps.filter(o => o.client_id === id);
+  const cc = contacts.filter(x => x.linked_clients?.includes(id));
+  const cd = docs.filter(d => d.client_id === id);
+
+  useEffect(() => {
+    if (!id) return;
+    setPocsLoading(true);
+    db.pocs.listByClient(id).then(setPocs).finally(() => setPocsLoading(false));
+  }, [id]);
+
+  const reloadPocs = async () => setPocs(await db.pocs.listByClient(id));
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const remove = async () => {
+
+=== tab content switch in ClientDetail ===
+3404:      {tab === 'overview' && <ClientOverview t={t} c={c} />}
+3405:      {tab === 'about' && <ClientAboutTab t={t} c={c} refresh={refresh} />}
+3406:      {tab === 'meetings' && <ClientMeetingsTab t={t} clientId={id} />}
+3407:      {tab === 'pocs' && <POCsTab t={t} clientId={id} pocs={pocs} loading={pocsLoading} reload={reloadPocs} />}
+3409:      {tab === 'agreement' && <ClientAgreement t={t} c={c} contacts={contacts} />}
+3410:      {tab === 'equity' && <ClientEquity t={t} c={c} />}
+3411:      {tab === 'opportunities' && (
+3417:      {tab === 'contacts' && <ClientAgencyContacts t={t} contacts={cc} agencies={agencies} />}
+3418:      {tab === 'documents' && <DocsList t={t} docs={cd} />}
+3419:      {tab === 'onboarding' && <Onboarding t={t} client={c} />}
+3420:      {tab === 'subopps' && <SubOppsTab t={t} clientId={id} />}
+3421:      {tab === 'pastperf' && <PastPerfTab t={t} clientId={id} />}
+3422:      {tab === 'portal' && <PortalAccessTab t={t} clientId={id} />}
+3423:      {tab === 'notes' && <NotesSection t={t} entityType="client" entityId={id} />}
+9370:      {tab === 'prospects' && (
+9471:      {tab === 'lusha' && (
+9491:      {tab === 'seeder' && <NationwideSeederTab t={t} refresh={refresh} />}
+9493:      {tab === 'coverage' && <CoverageTab t={t} prospects={prospects} opps={opps} />}
+9495:      {tab === 'expiring' && (
+9558:      {tab === 'sam' && (
+
+=== touchpoints access ===
+347:    listByProspect: async (prospectId) => { const { data, error } = await supabase.from('touchpoints').select('*').eq('prospect_id', prospectId).order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+348:    listByLead: async (leadId) => { const { data, error } = await supabase.from('touchpoints').select('*').eq('lead_id', leadId).order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+349:    create: async (row) => { const { data, error } = await supabase.from('touchpoints').insert(row).select().single(); if (error) throw error; return data; },
+350:    remove: async (id) => { const { error } = await supabase.from('touchpoints').delete().eq('id', id); if (error) throw error; },
