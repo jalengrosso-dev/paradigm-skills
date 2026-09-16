@@ -1,0 +1,17 @@
+=== client tab labels + switch (bdplan neighbors) ===
+3479:    { id: 'bdplan', label: 'BD Plan' },
+3480:    { id: 'subopps', label: 'Sub Opportunities' },
+3542:      {tab === 'bdplan' && <BDPlanTab t={t} clientId={id} agencies={agencies} />}
+3543:      {tab === 'subopps' && <SubOppsTab t={t} clientId={id} />}
+
+=== teaming/subs surface ===
+368:    listByProposal: async (proposalId) => { const { data, error } = await supabase.from('proposal_subs').select('*').eq('proposal_id', proposalId).order('created_at'); if (error) throw error; return data || []; },
+369:    create: async (row) => { const { data, error } = await supabase.from('proposal_subs').insert(row).select().single(); if (error) throw error; return data; },
+370:    update: async (id, patch) => { const { data, error } = await supabase.from('proposal_subs').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single(); if (error) throw error; return data; },
+371:    remove: async (id) => { const { error } = await supabase.from('proposal_subs').delete().eq('id', id); if (error) throw error; },
+5880:  const [subsOpen, setSubsOpen] = useState(false);
+6157:            <button onClick={() => setSubsOpen(true)} title="Subs & partner compliance — flow-down clauses, NDA/SAM checks, workshare, subcontracting plan" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 8, background: 'transparent', color: '#14B8A6', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid ' + t.border }}>
+6197:        {subsOpen && <ProposalSubsPanel t={t} proposal={selected} opp={opps.find(o => o.id === selected.opportunity_id)} onClose={() => setSubsOpen(false)} />}
+
+=== agencies passed to ClientDetail? ===
+3447:function ClientDetail({ t, id, clients, opps, contacts, agencies, docs, navigate, openAgent, refresh }) {
