@@ -1,0 +1,135 @@
+=== WinThemeModal location ===
+7421:function WinThemeModal({ t, proposal, onClose, onSaved }) {
+
+=== WinThemeModal verbatim ===
+7421: function WinThemeModal({ t, proposal, onClose, onSaved }) {
+7422:   const [themes, setThemes] = useState((proposal.win_themes && proposal.win_themes.length) ? proposal.win_themes : [{ label: '', statement: '', discriminator: '', proof_point_id: '', litmus_unique: false, litmus_scorable: false, keywords: [] }]);
+7423:   const [kwInputs, setKwInputs] = useState(((proposal.win_themes && proposal.win_themes.length) ? proposal.win_themes : [{ keywords: [] }]).map(th => (th.keywords || []).join(', ')));
+7424:   const [busy, setBusy] = useState(false);
+7425:   const [pps, setPps] = useState([]);
+7426:   useEffect(() => { db.proofpoints.list().then(setPps).catch(() => setPps([])); }, []);
+7427:   const setField = (i, k, v) => { const next = [...themes]; next[i] = { ...next[i], [k]: v }; setThemes(next); };
+7428: 
+7429:   const setLabel = (i, v) => { const next = [...themes]; next[i] = { ...next[i], label: v }; setThemes(next); };
+7430:   const setKw = (i, v) => { const next = [...kwInputs]; next[i] = v; setKwInputs(next); };
+7431:   const addTheme = () => { if (themes.length >= 5) return; setThemes([...themes, { label: '', statement: '', discriminator: '', proof_point_id: '', litmus_unique: false, litmus_scorable: false, keywords: [] }]); setKwInputs([...kwInputs, '']); };
+7432:   const removeTheme = (i) => { setThemes(themes.filter((_, x) => x !== i)); setKwInputs(kwInputs.filter((_, x) => x !== i)); };
+7433: 
+7434:   const save = async () => {
+7435:     setBusy(true);
+7436:     try {
+7437:       const payload = themes.map((th, i) => ({ label: (th.label || '').trim(), statement: (th.statement || '').trim(), discriminator: (th.discriminator || '').trim(), proof_point_id: th.proof_point_id || '', litmus_unique: !!th.litmus_unique, litmus_scorable: !!th.litmus_scorable, keywords: kwInputs[i].split(',').map(k => k.trim()).filter(Boolean) })).filter(th => th.label && th.keywords.length > 0);
+7438:       await db.proposals.update(proposal.id, { win_themes: payload });
+7439:       onSaved(payload);
+7440:     } catch(e) { alert('Save failed: ' + e.message); }
+7441:     finally { setBusy(false); }
+7442:   };
+7443: 
+7444:   return <Modal t={t} title="Win Themes" onClose={onClose}>
+7445:     <p style={{ fontSize: 12, color: t.textSec, margin: '0 0 14px', lineHeight: 1.5 }}>Define up to 5 win themes with the keywords that signal each one. The tracker scans your drafted sections to show where each theme is proven — and where it's missing.</p>
+7446:     {themes.map((th, i) => (
+7447:       <div key={i} style={{ background: t.bgSubtle, borderRadius: 8, padding: 12, marginBottom: 10 }}>
+7448:         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+7449:           <span style={{ fontSize: 11, fontWeight: 600, color: t.accent, width: 20 }}>#{i + 1}</span>
+7450:           <input value={th.label} onChange={e => setLabel(i, e.target.value)} placeholder="Theme label (e.g., Zero-disruption transition)" style={{ ...inputStyle(t), flex: 1 }} />
+7451:           {themes.length > 1 && <button onClick={() => removeTheme(i)} style={{ padding: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: '#EF4444' }}><Trash2 size={14} /></button>}
+7452:         </div>
+7453:         <input value={kwInputs[i]} onChange={e => setKw(i, e.target.value)} placeholder="Keywords, comma-separated (transition, continuity, zero disruption, phase-in)" style={{ ...inputStyle(t), width: '100%', fontSize: 12, marginBottom: 8 }} />
+7454:         <textarea value={th.statement || ''} onChange={e => setField(i, 'statement', e.target.value)} rows={2} placeholder="Theme statement: [benefit] because [our discriminator], which results in [quantified benefit to the customer]" style={{ ...inputStyle(t), width: '100%', fontSize: 12, resize: 'vertical', marginBottom: 8 }} />
+7455:         <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+7456:           <input value={th.discriminator || ''} onChange={e => setField(i, 'discriminator', e.target.value)} placeholder="Discriminator (what ONLY we can say)" style={{ ...inputStyle(t), flex: 1, fontSize: 12 }} />
+7457:           <select value={th.proof_point_id || ''} onChange={e => setField(i, 'proof_point_id', e.target.value)} style={{ ...inputStyle(t), flex: 1, fontSize: 12 }}>
+7458:             <option value="">— link proof point —</option>
+7459:             {pps.map(pp => <option key={pp.id} value={pp.id}>{(pp.claim || '').substring(0, 60)}{pp.metric ? ' (' + pp.metric + ')' : ''}</option>)}
+7460:           </select>
+7461:         </div>
+7462:         <div style={{ display: 'flex', gap: 16, fontSize: 11, color: t.textSec }}>
+7463:           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} title="A competitor must NOT be able to make the same claim"><input type="checkbox" checked={!!th.litmus_unique} onChange={e => setField(i, 'litmus_unique', e.target.checked)} /> Competitor can't claim it</label>
+7464:           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} title="An evaluator could paste this straight into a scoring sheet"><input type="checkbox" checked={!!th.litmus_scorable} onChange={e => setField(i, 'litmus_scorable', e.target.checked)} /> Evaluator can score it</label>
+7465:         </div>
+7466:       </div>
+7467:     ))}
+7468:     {themes.length < 5 && <button onClick={addTheme} style={{ ...btnStyle(t), display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Plus size={14} /> Add theme</button>}
+7469:     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+7470:       <button onClick={onClose} style={btnStyle(t)}>Cancel</button>
+7471:       <button onClick={save} disabled={busy} style={{ ...btnStyle(t, 'primary'), opacity: busy ? 0.6 : 1 }}>{busy ? 'Saving...' : 'Save Themes'}</button>
+7472:     </div>
+7473:   </Modal>;
+7474: }
+7475: 
+7476: function DeadlinesPanel({ t, proposal, onClose, onSaved }) {
+7477:   const [qaDeadline, setQaDeadline] = useState(proposal.qa_deadline || '');
+7478:   const [amendments, setAmendments] = useState(Array.isArray(proposal.amendments) ? proposal.amendments : []);
+7479:   const [newAmend, setNewAmend] = useState({ number: '', date: '', summary: '' });
+7480:   const [busy, setBusy] = useState(false);
+7481: 
+7482:   const daysLeft = qaDeadline ? Math.ceil((new Date(qaDeadline) - new Date()) / 86400000) : null;
+7483:   const qaColor = daysLeft === null ? t.textTer : daysLeft < 0 ? t.textTer : daysLeft <= 2 ? t.danger : daysLeft <= 5 ? t.warning : t.success;
+7484: 
+7485:   const save = async (patch) => {
+7486:     setBusy(true);
+7487:     try {
+7488:       const updated = await db.proposals.update(proposal.id, patch);
+7489:       onSaved(updated);
+7490:     } catch(e) { alert('Failed: ' + e.message); }
+7491:     finally { setBusy(false); }
+7492:   };
+7493: 
+7494:   const addAmendment = async () => {
+7495:     if (!newAmend.number.trim()) return alert('Amendment number required');
+7496:     const next = [...amendments, { ...newAmend, id: Date.now(), acknowledged: false }];
+7497:     setAmendments(next);
+7498:     setNewAmend({ number: '', date: '', summary: '' });
+7499:     await save({ amendments: next });
+7500:   };
+7501: 
+7502:   const toggleAck = async (id) => {
+7503:     const next = amendments.map(a => a.id === id ? { ...a, acknowledged: !a.acknowledged } : a);
+7504:     setAmendments(next);
+7505:     await save({ amendments: next });
+7506:   };
+7507: 
+7508:   const removeAmend = async (id) => {
+7509:     const next = amendments.filter(a => a.id !== id);
+7510:     setAmendments(next);
+7511:     await save({ amendments: next });
+7512:   };
+7513: 
+7514:   const unacked = amendments.filter(a => !a.acknowledged).length;
+7515: 
+7516:   return (
+7517:     <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.7)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+7518:       <div onClick={e => e.stopPropagation()} style={{ background: t.bgSubtle, borderRadius: 16, border: '1px solid ' + t.border, width: '100%', maxWidth: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+7519:         <div style={{ padding: '18px 24px', borderBottom: '1px solid ' + t.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+7520:           <div>
+7521:             <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: t.text }}>Deadlines & Amendments</h2>
+7522:             <p style={{ fontSize: 12, color: t.textSec, margin: '4px 0 0' }}>{proposal.title}</p>
+7523:           </div>
+7524:           <button onClick={onClose} style={{ padding: 8, color: t.textTer, cursor: 'pointer' }}><X size={16} /></button>
+7525:         </div>
+7526: 
+7527:         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+7528:           <div style={{ marginBottom: 24 }}>
+7529:             <label style={{ fontSize: 12, fontWeight: 600, color: t.textSec, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Q&A Deadline</label>
+7530:             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+7531:               <input type="date" value={qaDeadline} onChange={e => setQaDeadline(e.target.value)} onBlur={() => save({ qa_deadline: qaDeadline || null })} style={inputStyle(t)} />
+7532:               {daysLeft !== null && (
+7533:                 <span style={{ fontSize: 12, fontWeight: 600, color: qaColor }}>
+7534:                   {daysLeft < 0 ? 'Q&A period closed' : daysLeft === 0 ? 'DUE TODAY' : daysLeft + ' days left'}
+7535:                 </span>
+7536:               )}
+7537:             </div>
+7538:             <p style={{ fontSize: 11, color: t.textTer, margin: '6px 0 0' }}>Submit your questions before this date. Missing it is unrecoverable.</p>
+7539:           </div>
+7540: 
+7541:           <div>
+7542:             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+7543:               <label style={{ fontSize: 12, fontWeight: 600, color: t.textSec, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amendments ({amendments.length})</label>
+7544:               {unacked > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: t.danger }}>{unacked} unacknowledged</span>}
+7545:             </div>
+7546: 
+7547:             {amendments.map(a => (
+7548:               <div key={a.id} style={{ background: t.surface, borderRadius: 10, padding: 12, border: '1px solid ' + (a.acknowledged ? t.border : t.danger + '50'), marginBottom: 8, display: 'flex', gap: 12, alignItems: 'center' }}>
+7549:                 <input type="checkbox" checked={!!a.acknowledged} onChange={() => toggleAck(a.id)} style={{ width: 16, height: 16, accentColor: t.success, cursor: 'pointer', flexShrink: 0 }} />
+7550:                 <div style={{ flex: 1, minWidth: 0 }}>
+7551:                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
