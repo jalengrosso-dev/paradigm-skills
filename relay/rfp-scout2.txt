@@ -1,0 +1,338 @@
+=== ComplianceMatrixPanel verbatim ===
+function ComplianceMatrixPanel({ t, proposal, sections, onClose }) {
+  const [reqs, setReqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [extractOpen, setExtractOpen] = useState(false);
+  const [rfpText, setRfpText] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [filter, setFilter] = useState('all');
+
+  const load = async () => {
+    setLoading(true);
+    try { setReqs(await db.compliance.listByProposal(proposal.id)); }
+    catch(e) { alert('Failed: ' + e.message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [proposal.id]);
+
+  const extract = async () => {
+    if (!rfpText.trim()) return alert('Paste the RFP text first');
+    setExtracting(true);
+    try {
+      const res = await fetch('/.netlify/functions/extract-requirements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal_id: proposal.id, rfp_text: rfpText, sections: sections.map(s => s.title) })
+      });
+      const data = await res.json();
+      if (data.error) { alert('Extraction issue: ' + data.error); }
+      else {
+        if (proposal.opportunity_id) {
+          try { await db.opps.update(proposal.opportunity_id, { rfp_full_text: rfpText }); } catch(e) {}
+        }
+        setRfpText(''); setExtractOpen(false);
+        await load();
+        writeMemory({ entity_type: 'proposal', entity_id: proposal.id, entity_name: proposal.title, memory_type: 'compliance_extraction', content: 'Compliance matrix generated for ' + proposal.title + ': ' + (data.count || 0) + ' requirements extracted from solicitation text.', source: 'compliance_matrix' });
+      }
+    } catch(e) { alert('Failed: ' + e.message); }
+    finally { setExtracting(false); }
+  };
+
+  const setReqStatus = async (r, status) => {
+    try { const updated = await db.compliance.update(r.id, { status }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const setReqSection = async (r, mapped_section) => {
+    try { const updated = await db.compliance.update(r.id, { mapped_section }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const setReqGrade = async (r, compliance_grade) => {
+    try { const updated = await db.compliance.update(r.id, { compliance_grade }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const setReqJustification = async (r, justification) => {
+    try { const updated = await db.compliance.update(r.id, { justification }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const removeReq = async (r) => {
+    if (!confirm('Remove this requirement?')) return;
+    try { await db.compliance.remove(r.id); setReqs(reqs.filter(x => x.id !== r.id)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const clearAll = async () => {
+    if (!confirm('Clear ALL requirements for this proposal? This cannot be undone.')) return;
+    try { await db.compliance.clearProposal(proposal.id); setReqs([]); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const STATUS_COLORS = { 'Unaddressed': '#EF4444', 'In Progress': '#F59E0B', 'Addressed': '#10B981', 'N/A': '#64748B' };
+  const TYPE_COLORS = { 'shall': '#3B82F6', 'submission': '#A855F7', 'evaluation': '#EC4899', 'certification': '#D4A574' };
+
+  const addressed = reqs.filter(r => r.status === 'Addressed' || r.status === 'N/A').length;
+  const pct = reqs.length ? Math.round((addressed / reqs.length) * 100) : 0;
+  const GRADE_WEIGHT = { full: 1, na: 1, partial: 0.5, non: 0 };
+  const gradable = reqs.filter(r => r.compliance_grade !== 'na');
+  const compScore = gradable.length ? reqs.reduce((sum, r) => sum + (GRADE_WEIGHT[r.compliance_grade] ?? 1), 0) / reqs.length : 1;
+  const compPct = Math.round(compScore * 100);
+  const nonComply = reqs.filter(r => r.compliance_grade === 'non').length;
+  const partialComply = reqs.filter(r => r.compliance_grade === 'partial').length;
+  const bidRisk = reqs.length > 0 && compPct < 90;
+  const filtered = filter === 'all' ? reqs : filter === 'open' ? reqs.filter(r => r.status === 'Unaddressed' || r.status === 'In Progress') : filter === 'clause' ? reqs.filter(r => !!r.clause_number) : filter === 'flowdown' ? reqs.filter(r => r.flow_down === true) : reqs.filter(r => r.requirement_type === filter);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.7)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: t.bgSubtle, borderRadius: 16, border: '1px solid ' + t.border, width: '100%', maxWidth: 1000, maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 24px', borderBottom: '1px solid ' + t.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: t.text }}>Compliance Matrix</h2>
+            <p style={{ fontSize: 12, color: t.textSec, margin: '4px 0 0' }}>{proposal.title}</p>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {reqs.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginRight: 8 }}>
+                {bidRisk && (
+                  <span title={`${nonComply} non-compliant, ${partialComply} partial — APMP flags a bid/no-bid revisit below 90% compliance`} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, background: '#EF444422', color: '#EF4444', border: '1px solid #EF444455' }}>
+                    <AlertTriangle size={11} /> Bid Decision
+                  </span>
+
+=== SECTION_TEMPLATE verbatim ===
+const SECTION_TEMPLATE = [
+  { volume: 'Executive Summary', title: 'Executive Summary' },
+  { volume: 'Volume 1 — Technical', title: 'Understanding of the Requirement' },
+  { volume: 'Volume 1 — Technical', title: 'Technical Approach' },
+  { volume: 'Volume 1 — Technical', title: 'Methodology & Tools' },
+  { volume: 'Volume 1 — Technical', title: 'Quality Assurance / QC Plan' },
+  { volume: 'Volume 1 — Technical', title: 'Risk Management' },
+  { volume: 'Volume 1 — Technical', title: 'Phase-In / Transition Plan' },
+  { volume: 'Volume 2 — Management', title: 'Program Management Structure' },
+  { volume: 'Volume 2 — Management', title: 'Key Personnel' },
+  { volume: 'Volume 2 — Management', title: 'Staffing Plan' },
+  { volume: 'Volume 2 — Management', title: 'Subcontractor Management' },
+  { volume: 'Volume 2 — Management', title: 'Communication & Reporting' },
+  { volume: 'Volume 3 — Past Performance', title: 'Past Performance Reference 1' },
+  { volume: 'Volume 3 — Past Performance', title: 'Past Performance Reference 2' },
+  { volume: 'Volume 4 — Price', title: 'Price Narrative' },
+];
+
+const WHITE_PAPER_TEMPLATE = [
+  { volume: 'White Paper', title: 'Executive Summary' },
+  { volume: 'White Paper', title: 'Problem / Challenge Statement' },
+  { volume: 'White Paper', title: 'Proposed Approach' },
+  { volume: 'White Paper', title: 'Relevant Capability & Experience' },
+  { volume: 'White Paper', title: 'Differentiators' },
+  { volume: 'White Paper', title: 'Conclusion & Call to Action' },
+];
+
+const RFI_TEMPLATE = [
+  { volume: 'RFI Response', title: 'Company Overview' },
+  { volume: 'RFI Response', title: 'Relevant Experience & Past Performance' },
+  { volume: 'RFI Response', title: 'Technical Capability' },
+  { volume: 'RFI Response', title: 'Capacity & Approach' },
+  { volume: 'RFI Response', title: 'Socioeconomic Status & Certifications' },
+  { volume: 'RFI Response', title: 'Responses to RFI Questions' },
+];
+
+const DOC_TYPES = [
+  { id: 'proposal', label: 'Full Proposal', template: SECTION_TEMPLATE },
+  { id: 'white_paper', label: 'White Paper', template: WHITE_PAPER_TEMPLATE },
+  { id: 'rfi_response', label: 'RFI Response', template: RFI_TEMPLATE },
+
+=== extract-requirements.js ===
+import fs from 'fs';
+import path from 'path';
+
+function getApiKey() {
+  const direct = process.env.ANTHROPIC_API_KEY;
+  if (direct) return direct;
+  try {
+    const envContent = fs.readFileSync(path.resolve(process.cwd(), '.env'), 'utf-8');
+    const match = envContent.match(/ANTHROPIC_API_KEY=(.+)/);
+    return match ? match[1].trim() : process.env.ANTHROPIC_API_KEY;
+  } catch(e) { return process.env.ANTHROPIC_API_KEY; }
+}
+
+// Regex pre-pass: guarantee no clause number is missed even if the AI overlooks it.
+// FAR: 52.2xx-xx  DFARS: 252.2xx-xxxx  (also catches alt-agency 2xx.xxx-xxxx forms)
+function scanClauses(text) {
+  const re = /\b(2?52\.\d{3}-\d{1,4})(?:\s+Alt(?:ernate)?\s+[IVX]+)?/g;
+  const found = new Map();
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const num = m[1];
+    if (!found.has(num)) {
+      const start = Math.max(0, m.index - 20);
+      const end = Math.min(text.length, m.index + 120);
+      found.set(num, text.slice(start, end).replace(/\s+/g, ' ').trim());
+    }
+  }
+  return [...found.entries()].map(([number, context]) => ({ number, context }));
+}
+
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  try {
+    const { proposal_id, rfp_text, sections } = await req.json();
+    if (!proposal_id || !rfp_text) {
+      return new Response(JSON.stringify({ error: 'proposal_id and rfp_text required' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+    // Scan the FULL text for clause numbers before truncation — Section I lives at the end.
+    const scannedClauses = scanClauses(rfp_text);
+    const clauseHint = scannedClauses.length
+      ? `\n\nCLAUSE NUMBERS DETECTED IN THE FULL DOCUMENT (you MUST return a row for each one, even if its text is not shown below because it is incorporated by reference):\n${scannedClauses.map(c => `- ${c.number}  [context: ${c.context}]`).join('\n')}`
+      : '';
+
+    const sectionList = (sections && sections.length ? sections : ['Executive Summary','Technical Approach','Management Approach','Past Performance','Price','Compliance']).join(', ');
+
+    const prompt = `You are a GovCon compliance analyst. Extract EVERY requirement AND every FAR/DFARS clause from this solicitation.
+
+PART 1 — REQUIREMENTS. Any sentence containing "shall", "must", "will", "is required", "are required", "should" (when directive), or submission instructions (page limits, format, deadlines, volumes).
+
+PART 2 — CLAUSES. Every FAR clause (52.xxx-xx) and DFARS clause (252.xxx-xxxx) referenced anywhere, including Section I clauses incorporated by reference (listed by number with no body text). A clause number with no accompanying text is INCORPORATED BY REFERENCE — still return it.
+
+For each item return:
+- requirement_text: for a requirement, the exact requirement quoted or tightly paraphrased. For a clause, a one-line plain-English statement of what the clause obligates (e.g., "Pay Davis-Bacon prevailing wages to laborers and mechanics").
+- source_reference: where it came from (e.g., "Section L 3.2", "SOW 4.1", "Section M Factor 2", "Section I").
+- requirement_type: one of "shall" (mandatory performance), "submission" (format/instructions), "evaluation" (how they score), "certification" (certs/registrations needed). For a clause, pick the type that best fits its effect — most map to "shall".
+- clause_number: the FAR/DFARS number if this item IS a clause (e.g., "52.228-15"), otherwise null.
+- clause_title: the official clause title if known (e.g., "Performance and Payment Bonds—Construction"), otherwise null. Only set when clause_number is set.
+- by_reference: true if this is a clause listed by number with no body text present (incorporated by reference), false otherwise. Only meaningful when clause_number is set.
+- narrative_required: true ONLY if the item requires content in the PROPOSAL (a narrative response, a plan, a citation, or pricing input). Most FAR/DFARS clauses are contract terms the offeror simply complies with and need NO proposal narrative — set false for those. Set true for clauses that drive proposal content, e.g.: Davis-Bacon (wage classifications in pricing), 52.228-15 Performance/Payment Bonds (bonding confirmation), 52.219-9 Small Business Subcontracting Plan (a plan volume), Buy American / 52.225-x (sourcing approach), 52.204-21 / DFARS 252.204-7012 (cybersecurity/CUI approach).
+- suggested_section: which proposal section addresses it. Choose from: ${sectionList}. For a comply-silently clause with no narrative, use "Compliance".
+- is_hidden: true if a requirement was buried in NARRATIVE prose (SOW/PWS body) rather than an explicit instructions/Section L list. false for items from an obvious instructions/evaluation list or from a clause list.
+
+Respond ONLY with a JSON array. No preamble, no markdown fences. Example:
+[{"requirement_text":"Furnish performance and payment bonds each for 100% of contract price.","source_reference":"Section I","requirement_type":"shall","clause_number":"52.228-15","clause_title":"Performance and Payment Bonds—Construction","by_reference":true,"narrative_required":true,"suggested_section":"Price","is_hidden":false}]
+
+SOLICITATION TEXT:
+${rfp_text.substring(0, 90000)}${clauseHint}`;
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 16000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const claudeData = await claudeRes.json();
+    const text = (claudeData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    let requirements;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      requirements = JSON.parse(clean);
+      if (!Array.isArray(requirements)) throw new Error('not array');
+    } catch(e) {
+      return new Response(JSON.stringify({ error: 'Failed to parse requirements', raw: text.substring(0, 500) }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Safety net: ensure every regex-detected clause has a row, even if the AI dropped it.
+    const returnedClauseNums = new Set(
+      requirements.filter(r => r.clause_number).map(r => String(r.clause_number).trim())
+    );
+    for (const c of scannedClauses) {
+      if (!returnedClauseNums.has(c.number)) {
+        requirements.push({
+          requirement_text: 'FAR/DFARS clause referenced in solicitation — verify obligation.',
+          source_reference: 'Clause reference',
+          requirement_type: 'shall',
+          clause_number: c.number,
+          clause_title: null,
+          by_reference: true,
+          narrative_required: false,
+          suggested_section: 'Compliance',
+          is_hidden: false
+        });
+      }
+    }
+
+    const rows = requirements.map((r, i) => {
+      const hasClause = !!(r.clause_number && String(r.clause_number).trim());
+      return {
+        proposal_id,
+        requirement_text: String(r.requirement_text || '').substring(0, 2000),
+        source_reference: String(r.source_reference || ''),
+        requirement_type: ['shall','submission','evaluation','certification'].includes(r.requirement_type) ? r.requirement_type : 'shall',
+        mapped_section: String(r.suggested_section || ''),
+        status: 'Unaddressed',
+        compliance_grade: 'full',
+        is_hidden: r.is_hidden === true,
+        clause_number: hasClause ? String(r.clause_number).trim().substring(0, 40) : null,
+        clause_title: hasClause && r.clause_title ? String(r.clause_title).substring(0, 300) : null,
+        by_reference: hasClause ? (r.by_reference === true) : false,
+        narrative_required: r.narrative_required === true,
+        flow_down: false,
+        sort_order: i
+      };
+    });
+
+    // Enrich clause rows against the authoritative far_clause_reference table:
+    // fill official titles the AI didn't know, and set the flow-down flag for subcontract compliance.
+    try {
+      const refRes = await fetch(supabaseUrl + '/rest/v1/far_clause_reference?select=clause_number,clause_title,flow_down', {
+        headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey }
+      });
+      if (refRes.ok) {
+        const refRows = await refRes.json();
+        const refMap = new Map((Array.isArray(refRows) ? refRows : []).map(x => [String(x.clause_number).trim(), x]));
+        for (const row of rows) {
+          if (!row.clause_number) continue;
+          const ref = refMap.get(row.clause_number);
+          if (!ref) continue;
+          if (ref.clause_title) row.clause_title = String(ref.clause_title).substring(0, 300);
+          row.flow_down = ref.flow_down === true;
+        }
+      }
+    } catch (e) {
+      // Reference enrichment is best-effort — never block the insert on it.
+    }
+
+    const insertRes = await fetch(supabaseUrl + '/rest/v1/compliance_requirements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': 'Bearer ' + supabaseKey,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(rows)
+    });
+
+    const inserted = await insertRes.json();
+
+    return new Response(JSON.stringify({
+      success: true,
+      count: Array.isArray(inserted) ? inserted.length : 0,
+      clauses_detected: scannedClauses.length,
+      requirements: inserted
+    }), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
