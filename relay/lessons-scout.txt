@@ -1,0 +1,58 @@
+=== lessons / debrief / meeting-log surfaces ===
+101:  { id: 'debrief', name: 'Debrief & Lessons', short: 'DL', icon: Trophy, color: '#FBBF24', description: 'Post-win/loss analysis. Protest recommendations. Pipeline pattern tracking.' },
+148:  debrief:      ['gmail', 'fathom', 'notion'],
+712:    'Post-award lifecycle: deliverables/CDRLs, option years, and CPARS milestones per contract.',
+3315:function ClientMeetingsTab({ t, clientId }) {
+3584:const BD_PHASES = ['Market Entry', 'Account Positioning', 'Opportunity Qualification', 'Capture', 'Proposal', 'Post-Award Growth'];
+3777:      {tab === 'meetings' && <ClientMeetingsTab t={t} clientId={id} />}
+8737:// ---- Contract Lifecycle (post-award) module ----
+8764:          <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>{(contracts || []).filter(c => c.status === 'Active').length} active · {(contracts || []).length} total · post-award lifecycle</p>
+
+=== ClientMeetingsTab (client detail 'meetings' tab) ===
+3315:function ClientMeetingsTab({ t, clientId }) {
+3329:    const { data, error } = await supabase.from('client_meetings').select('*').eq('client_id', clientId).order('meeting_date', { ascending: false }).order('created_at', { ascending: false });
+3342:      const { error } = await supabase.from('client_meetings').insert(row);
+3349:    const { error } = await supabase.from('client_meetings').delete().eq('id', id);
+
+=== ClientMeetingsTab verbatim (first 40) ===
+3315: function ClientMeetingsTab({ t, clientId }) {
+3316:   const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 6, background: t.bg || t.surface, border: `1px solid ${t.border}`, color: t.text, fontSize: 13, boxSizing: 'border-box' };
+3317:   const labelStyle = { fontSize: 11, color: t.textTer, fontWeight: 500, marginBottom: 6, display: 'block' };
+3318:   const card = { background: t.surface, border: `1px solid ${t.border}`, borderRadius: 10, padding: 18 };
+3319:   const blank = { meeting_date: new Date().toISOString().slice(0, 10), medium: 'meeting', attendees: '', agency: '', summary: '', outcome: '', next_step: '', next_step_due: '', proposal_id: '' };
+3320:   const [rows, setRows] = useState([]);
+3321:   const [proposals, setProposals] = useState([]);
+3322:   const proposalTitle = (pid) => (proposals.find(pp => pp.id === pid) || {}).title;
+3323:   const [loading, setLoading] = useState(true);
+3324:   const [adding, setAdding] = useState(false);
+3325:   const [f, setF] = useState(blank);
+3326:   const [saving, setSaving] = useState(false);
+3327:   const load = async () => {
+3328:     setLoading(true);
+3329:     const { data, error } = await supabase.from('client_meetings').select('*').eq('client_id', clientId).order('meeting_date', { ascending: false }).order('created_at', { ascending: false });
+3330:     if (!error) setRows(data || []);
+3331:     const { data: pdata } = await supabase.from('proposals').select('id, title').eq('client_id', clientId);
+3332:     setProposals(pdata || []);
+3333:     setLoading(false);
+3334:   };
+3335:   useEffect(() => { load(); }, [clientId]);
+3336:   const save = async () => {
+3337:     if (!f.summary.trim()) { alert('Summary is required.'); return; }
+3338:     setSaving(true);
+3339:     try {
+3340:       const { data: { user } } = await supabase.auth.getUser();
+3341:       const row = { client_id: clientId, user_id: user?.id, meeting_date: f.meeting_date, medium: f.medium || null, attendees: f.attendees || null, agency: f.agency || null, summary: f.summary.trim(), outcome: f.outcome || null, next_step: f.next_step || null, next_step_due: f.next_step_due || null, proposal_id: f.proposal_id || null };
+3342:       const { error } = await supabase.from('client_meetings').insert(row);
+3343:       if (error) throw error;
+3344:       setF(blank); setAdding(false); await load();
+3345:     } catch (e) { alert(`Failed: ${e.message}`); } finally { setSaving(false); }
+3346:   };
+3347:   const remove = async (id) => {
+3348:     if (!confirm('Delete this meeting entry?')) return;
+3349:     const { error } = await supabase.from('client_meetings').delete().eq('id', id);
+3350:     if (error) { alert(`Failed: ${error.message}`); return; }
+3351:     load();
+3352:   };
+3353:   return (
+3354:     <div style={{ display: 'grid', gap: 16, maxWidth: 900 }}>
+3355:       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
