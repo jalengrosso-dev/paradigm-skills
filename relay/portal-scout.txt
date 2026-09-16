@@ -1,0 +1,93 @@
+=== portal db surface + portalSupabase ===
+4:const portalSupabase = createClient(
+279:    listByClient: async (cid) => { const { data, error } = await supabase.from('client_users').select('*').eq('client_id', cid).order('created_at'); if (error) throw error; return data || []; },
+280:    create: async (row) => { const { data, error } = await supabase.from('client_users').insert(row).select().single(); if (error) throw error; return data; },
+281:    update: async (id, patch) => { const { data, error } = await supabase.from('client_users').update(patch).eq('id', id).select().single(); if (error) throw error; return data; },
+282:    remove: async (id) => { const { error } = await supabase.from('client_users').delete().eq('id', id); if (error) throw error; },
+840:    portalSupabase.auth.getSession().then(({ data }) => { setSession(data.session); });
+841:    const { data: { subscription } } = portalSupabase.auth.onAuthStateChange((_e, s) => setSession(s));
+850:        const { data: cu, error: cuErr } = await portalSupabase.from('client_users').select('*').eq('email', email).maybeSingle();
+855:        portalSupabase.from('client_users').update({ last_login: new Date().toISOString() }).eq('id', cu.id).then(() => {});
+856:        const { data: cl, error: clErr } = await portalSupabase.from('clients').select('*').eq('id', cu.client_id).maybeSingle();
+876:          <button onClick={() => portalSupabase.auth.signOut()} style={{ padding: '9px 16px', borderRadius: 8, background: T.bgSubtle, color: T.text, border: '1px solid ' + T.border, fontSize: 13, cursor: 'pointer' }}>Sign out</button>
+901:        <button onClick={() => portalSupabase.auth.signOut()} style={{ padding: '7px 14px', borderRadius: 7, background: 'transparent', color: T.textSec, border: '1px solid ' + T.border, fontSize: 12, cursor: 'pointer' }}>Sign out</button>
+928:      const { error } = await portalSupabase.auth.signInWithOtp({
+982:    try { const { data } = await portalSupabase.from('notes').select('*').eq('entity_type', 'client').eq('entity_id', client.id).order('created_at', { ascending: false }); setNotes(data || []); } catch(e) {}
+989:      const { error } = await portalSupabase.from('notes').insert({ entity_type: 'client', entity_id: client.id, content: draft.trim(), author: client.name + ' (client)', portal_author: true });
+1023:          portalSupabase.from('opportunities').select('*'),
+1024:          portalSupabase.from('client_requests').select('*').eq('status', 'open').order('created_at')
+1034:      await portalSupabase.from('client_requests').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', r.id);
+1115:      try { const { data } = await portalSupabase.from('opportunities').select('*').order('due_date', { ascending: true }); setOpps(data || []); }
+1173:      try { const { data } = await portalSupabase.from('documents').select('*').order('last_modified', { ascending: false }); setDocs(data || []); }
+1180:      const { data, error } = await portalSupabase.storage.from('documents').createSignedUrl(d.file_path, 3600);
+1222:          portalSupabase.from('opportunities').select('*').order('last_activity', { ascending: false }),
+1223:          portalSupabase.from('client_milestones').select('*').order('created_at', { ascending: false })
+
+=== PortalOpportunities + PortalDocuments components ===
+1015:function PortalDashboard({ T, client, role }) {
+1110:function PortalOpportunities({ T }) {
+1168:function PortalDocuments({ T }) {
+1213:function PortalActivity({ T, client }) {
+
+=== portal opportunities render verbatim ===
+1110: function PortalOpportunities({ T }) {
+1111:   const [opps, setOpps] = useState([]);
+1112:   const [loading, setLoading] = useState(true);
+1113:   useEffect(() => {
+1114:     (async () => {
+1115:       try { const { data } = await portalSupabase.from('opportunities').select('*').order('due_date', { ascending: true }); setOpps(data || []); }
+1116:       catch(e) {} finally { setLoading(false); }
+1117:     })();
+1118:   }, []);
+1119: 
+1120:   if (loading) return <div style={{ color: T.textTer, fontSize: 13 }}>Loading...</div>;
+1121: 
+1122:   const active = opps.filter(o => !['Won','Lost'].includes(o.stage));
+1123:   const closed = opps.filter(o => ['Won','Lost'].includes(o.stage));
+1124:   const stageColor = (s) => ({ 'Won': T.success, 'Lost': T.danger, 'Submitted': T.info, 'Identified': T.textTer }[s] || T.accent);
+1125: 
+1126:   const Section = ({ title, items }) => items.length === 0 ? null : (
+1127:     <div style={{ marginBottom: 20 }}>
+1128:       <div style={{ fontSize: 12, fontWeight: 600, color: T.textSec, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{title} ({items.length})</div>
+1129:       <div style={{ display: 'grid', gap: 10 }}>
+1130:         {items.map(o => (
+1131:           <PortalCard key={o.id} T={T}>
+1132:             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+1133:               <div style={{ minWidth: 0, flex: 1 }}>
+1134:                 <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{o.title}</div>
+1135:                 <div style={{ fontSize: 12, color: T.textTer, marginTop: 4 }}>{o.agency || 'Agency TBD'}{o.solicitation_number ? ' · ' + o.solicitation_number : ''}{o.set_aside ? ' · ' + o.set_aside : ''}</div>
+1136:                 {o.description && <div style={{ fontSize: 12, color: T.textSec, marginTop: 8, lineHeight: 1.5 }}>{(o.description || '').substring(0, 200)}{(o.description || '').length > 200 ? '…' : ''}</div>}
+1137:               </div>
+1138:               <div style={{ textAlign: 'right', flexShrink: 0 }}>
+1139:                 <span style={{ padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: stageColor(o.stage) + '20', color: stageColor(o.stage) }}>{o.stage}</span>
+1140:                 {o.estimated_value > 0 && <div style={{ fontSize: 13, color: T.text, fontWeight: 600, marginTop: 8 }}>{portalMoney(o.estimated_value)}</div>}
+1141:                 {o.due_date && <div style={{ fontSize: 11, color: T.textTer, marginTop: 2 }}>Due {portalDate(o.due_date)}</div>}
+1142:               </div>
+1143:             </div>
+1144:           </PortalCard>
+1145:         ))}
+1146:       </div>
+1147:     </div>
+1148:   );
+1149: 
+1150:   return (
+1151:     <div>
+1152:       <h1 style={{ color: T.text, fontSize: 22, fontWeight: 600, margin: '0 0 4px' }}>Your Opportunities</h1>
+1153:       <p style={{ color: T.textSec, fontSize: 13, margin: '0 0 20px' }}>Federal contracts we're pursuing on your behalf.</p>
+1154:       {opps.length === 0 ? (
+1155:         <PortalCard T={T} style={{ textAlign: 'center', padding: 48 }}>
+1156:           <div style={{ color: T.textTer, fontSize: 13 }}>No opportunities yet. We're actively researching the best federal targets for your business.</div>
+1157:         </PortalCard>
+1158:       ) : (
+1159:         <>
+1160:           <Section title="Active Pursuits" items={active} />
+1161:           <Section title="Closed" items={closed} />
+1162:         </>
+1163:       )}
+1164:     </div>
+1165:   );
+1166: }
+1167: 
+1168: function PortalDocuments({ T }) {
+1169:   const [docs, setDocs] = useState([]);
+1170:   const [loading, setLoading] = useState(true);
