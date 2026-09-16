@@ -1,0 +1,68 @@
+  return (
+    <div style={{ display: 'grid', gap: 16, maxWidth: 900 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 12, color: t.textTer }}>{rows.length} logged {rows.length === 1 ? 'entry' : 'entries'}. A meeting with an agency named also counts toward relationship scoring.</div>
+        {!adding && <button onClick={() => setAdding(true)} style={{ padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none' }}>+ Log Meeting</button>}
+      </div>
+      {adding && (
+        <div style={card}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div><label style={labelStyle}>Date</label><input type="date" value={f.meeting_date} onChange={e => setF({ ...f, meeting_date: e.target.value })} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Medium</label><select value={f.medium} onChange={e => setF({ ...f, medium: e.target.value })} style={inputStyle}><option value="meeting">Meeting</option><option value="call">Call</option><option value="email">Email</option><option value="site visit">Site visit</option></select></div>
+            <div><label style={labelStyle}>Attendees</label><input value={f.attendees} onChange={e => setF({ ...f, attendees: e.target.value })} style={inputStyle} placeholder="Who was in the room" /></div>
+            <div><label style={labelStyle}>Agency / Office (optional)</label><input value={f.agency} onChange={e => setF({ ...f, agency: e.target.value })} style={inputStyle} placeholder="Feeds relationship scoring" /></div>
+          </div>
+          {proposals.length > 0 && <div style={{ marginBottom: 12 }}><label style={labelStyle}>Related proposal (optional)</label><select value={f.proposal_id} onChange={e => setF({ ...f, proposal_id: e.target.value })} style={inputStyle}><option value="">— none —</option>{proposals.map(pp => <option key={pp.id} value={pp.id}>{pp.title}</option>)}</select><div style={{ fontSize: 11, color: t.textTer, marginTop: 6 }}>Link this meeting to a proposal so its notes reach drafting.</div></div>}
+          <div style={{ marginBottom: 12 }}><label style={labelStyle}>Summary *</label><textarea value={f.summary} onChange={e => setF({ ...f, summary: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} placeholder="What was discussed." /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 160px', gap: 12, marginBottom: 12 }}>
+            <div><label style={labelStyle}>Outcome</label><input value={f.outcome} onChange={e => setF({ ...f, outcome: e.target.value })} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Next step</label><input value={f.next_step} onChange={e => setF({ ...f, next_step: e.target.value })} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Due</label><input type="date" value={f.next_step_due} onChange={e => setF({ ...f, next_step_due: e.target.value })} style={inputStyle} /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={save} disabled={saving} style={{ padding: '9px 18px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save'}</button>
+            <button onClick={() => { setAdding(false); setF(blank); }} style={{ padding: '9px 18px', borderRadius: 8, background: t.surface, color: t.textSec, border: `1px solid ${t.border}`, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {loading ? <div style={{ padding: 20, color: t.textTer, fontSize: 13 }}>Loading…</div> :
+        (rows.length === 0 && !adding) ? <div style={{ padding: 32, textAlign: 'center', color: t.textTer, fontSize: 13 }}>No meetings logged yet.</div> :
+        rows.map(m => (
+          <div key={m.id} style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 12 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span className="mono" style={{ fontSize: 12, color: t.text, fontWeight: 500 }}>{m.meeting_date}</span>
+                {m.medium && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: t.accentDim, color: t.accent }}>{m.medium}</span>}
+                {m.agency && <span style={{ fontSize: 11, color: t.textSec }}>· {m.agency}</span>}
+                {m.proposal_id && proposalTitle(m.proposal_id) && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: t.purple + '20', color: t.purple }}>{proposalTitle(m.proposal_id)}</span>}
+              </div>
+              <button onClick={() => remove(m.id)} style={{ padding: '4px 8px', borderRadius: 5, background: 'transparent', color: t.textTer, border: 'none', fontSize: 11, cursor: 'pointer' }}>Delete</button>
+            </div>
+            {m.attendees && <div style={{ fontSize: 12, color: t.textSec, marginBottom: 6 }}>{m.attendees}</div>}
+            <div style={{ fontSize: 13, color: t.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.summary}</div>
+            {(m.outcome || m.next_step) && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${t.border}`, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {m.outcome && <div style={{ fontSize: 12 }}><span style={{ color: t.textTer }}>Outcome: </span><span style={{ color: t.textSec }}>{m.outcome}</span></div>}
+                {m.next_step && <div style={{ fontSize: 12 }}><span style={{ color: t.textTer }}>Next: </span><span style={{ color: t.textSec }}>{m.next_step}{m.next_step_due ? ` (by ${m.next_step_due})` : ''}</span></div>}
+              </div>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  );
+}
+
+
+// ---- Risk register: 7 APMP/enterprise categories, likelihood x impact, accept/mitigate/transfer/avoid ----
+const RISK_CATEGORIES = ['OCI', 'Performance', 'Financial', 'Protest', 'Reputational', 'Compliance', 'Strategic'];
+const RISK_TREATMENTS = ['Mitigate', 'Accept', 'Transfer', 'Avoid'];
+function RiskTab({ t, clientId, opps }) {
+  const [risks, setRisks] = useState([]);
+  const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const clientOpps = (opps || []).filter(o => o.client_id === clientId);
+  const load = async () => { try { setRisks(await db.risks.listByClient(clientId)); } catch(e) { console.error(e); } };
+  useEffect(() => { load(); }, [clientId]);
+  const blank = () => ({ client_id: clientId, opportunity_id: '', category: 'Performance', description: '', likelihood: 3, impact: 3, treatment: 'Mitigate', mitigation: '', owner: '', review_date: '', status: 'Open' });
+  const save = async () => {
