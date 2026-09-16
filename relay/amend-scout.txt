@@ -1,0 +1,165 @@
+=== db.compliance helpers ===
+371:  compliance: {
+372-    listByProposal: async (proposalId) => { const { data, error } = await supabase.from('compliance_requirements').select('*').eq('proposal_id', proposalId).order('sort_order'); if (error) throw error; return data || []; },
+373-    update: async (id, patch) => { const { data, error } = await supabase.from('compliance_requirements').update(patch).eq('id', id).select().single(); if (error) throw error; return data; },
+374-    remove: async (id) => { const { error } = await supabase.from('compliance_requirements').delete().eq('id', id); if (error) throw error; },
+375-    clearProposal: async (proposalId) => { const { error } = await supabase.from('compliance_requirements').delete().eq('proposal_id', proposalId); if (error) throw error; },
+376-  },
+377-  notes: {
+378-    listByEntity: async (entityType, entityId) => { const { data, error } = await supabase.from('notes').select('*').eq('entity_type', entityType).eq('entity_id', entityId).order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+379-    create: async (row) => { const { data, error } = await supabase.from('notes').insert(row).select().single(); if (error) throw error; return data; },
+
+=== ComplianceMatrixPanel render back half ===
+                        {['Volume', 'Section', 'Answers the question', 'M factor', 'Pages'].map(h => <th key={h} style={{ textAlign: 'left', padding: '5px 8px', color: t.textSec, fontWeight: 500, borderBottom: '1px solid ' + t.border }}>{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bd.outline.map((s, i) => (
+                        <tr key={i}>
+                          <td style={{ padding: '5px 8px', color: t.textTer, borderBottom: '1px solid ' + t.border }}>{s.volume}</td>
+                          <td style={{ padding: '5px 8px', color: t.text, fontWeight: 500, borderBottom: '1px solid ' + t.border }}>{s.title}</td>
+                          <td style={{ padding: '5px 8px', color: t.textSec, borderBottom: '1px solid ' + t.border }}>{s.answers_question}</td>
+                          <td style={{ padding: '5px 8px', color: t.textSec, borderBottom: '1px solid ' + t.border }}>{s.m_factor || '-'}</td>
+                          <td className="mono" style={{ padding: '5px 8px', color: t.textSec, borderBottom: '1px solid ' + t.border }}>{s.page_budget || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComplianceMatrixPanel({ t, proposal, sections, onClose }) {
+  const [reqs, setReqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [extractOpen, setExtractOpen] = useState(false);
+  const [rfpText, setRfpText] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [filter, setFilter] = useState('all');
+
+  const load = async () => {
+    setLoading(true);
+    try { setReqs(await db.compliance.listByProposal(proposal.id)); }
+    catch(e) { alert('Failed: ' + e.message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [proposal.id]);
+
+  const extract = async () => {
+    if (!rfpText.trim()) return alert('Paste the RFP text first');
+    setExtracting(true);
+    try {
+      const res = await fetch('/.netlify/functions/extract-requirements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposal_id: proposal.id, rfp_text: rfpText, sections: sections.map(s => s.title) })
+      });
+      const data = await res.json();
+      if (data.error) { alert('Extraction issue: ' + data.error); }
+      else {
+        if (proposal.opportunity_id) {
+          try { await db.opps.update(proposal.opportunity_id, { rfp_full_text: rfpText }); } catch(e) {}
+        }
+        setRfpText(''); setExtractOpen(false);
+        await load();
+        writeMemory({ entity_type: 'proposal', entity_id: proposal.id, entity_name: proposal.title, memory_type: 'compliance_extraction', content: 'Compliance matrix generated for ' + proposal.title + ': ' + (data.count || 0) + ' requirements extracted from solicitation text.', source: 'compliance_matrix' });
+      }
+    } catch(e) { alert('Failed: ' + e.message); }
+    finally { setExtracting(false); }
+  };
+
+  const setReqStatus = async (r, status) => {
+    try { const updated = await db.compliance.update(r.id, { status }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const setReqSection = async (r, mapped_section) => {
+    try { const updated = await db.compliance.update(r.id, { mapped_section }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const setReqGrade = async (r, compliance_grade) => {
+    try { const updated = await db.compliance.update(r.id, { compliance_grade }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const setReqJustification = async (r, justification) => {
+    try { const updated = await db.compliance.update(r.id, { justification }); setReqs(reqs.map(x => x.id === r.id ? updated : x)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const removeReq = async (r) => {
+    if (!confirm('Remove this requirement?')) return;
+    try { await db.compliance.remove(r.id); setReqs(reqs.filter(x => x.id !== r.id)); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const clearAll = async () => {
+    if (!confirm('Clear ALL requirements for this proposal? This cannot be undone.')) return;
+    try { await db.compliance.clearProposal(proposal.id); setReqs([]); }
+    catch(e) { alert('Failed: ' + e.message); }
+  };
+
+  const STATUS_COLORS = { 'Unaddressed': '#EF4444', 'In Progress': '#F59E0B', 'Addressed': '#10B981', 'N/A': '#64748B' };
+  const TYPE_COLORS = { 'shall': '#3B82F6', 'submission': '#A855F7', 'evaluation': '#EC4899', 'certification': '#D4A574' };
+
+  const addressed = reqs.filter(r => r.status === 'Addressed' || r.status === 'N/A').length;
+  const pct = reqs.length ? Math.round((addressed / reqs.length) * 100) : 0;
+  const GRADE_WEIGHT = { full: 1, na: 1, partial: 0.5, non: 0 };
+  const gradable = reqs.filter(r => r.compliance_grade !== 'na');
+  const compScore = gradable.length ? reqs.reduce((sum, r) => sum + (GRADE_WEIGHT[r.compliance_grade] ?? 1), 0) / reqs.length : 1;
+  const compPct = Math.round(compScore * 100);
+  const nonComply = reqs.filter(r => r.compliance_grade === 'non').length;
+  const partialComply = reqs.filter(r => r.compliance_grade === 'partial').length;
+  const bidRisk = reqs.length > 0 && compPct < 90;
+  const filtered = filter === 'all' ? reqs : filter === 'open' ? reqs.filter(r => r.status === 'Unaddressed' || r.status === 'In Progress') : filter === 'clause' ? reqs.filter(r => !!r.clause_number) : filter === 'flowdown' ? reqs.filter(r => r.flow_down === true) : reqs.filter(r => r.requirement_type === filter);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.7)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: t.bgSubtle, borderRadius: 16, border: '1px solid ' + t.border, width: '100%', maxWidth: 1000, maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 24px', borderBottom: '1px solid ' + t.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: t.text }}>Compliance Matrix</h2>
+            <p style={{ fontSize: 12, color: t.textSec, margin: '4px 0 0' }}>{proposal.title}</p>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {reqs.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginRight: 8 }}>
+                {bidRisk && (
+                  <span title={`${nonComply} non-compliant, ${partialComply} partial — APMP flags a bid/no-bid revisit below 90% compliance`} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, background: '#EF444422', color: '#EF4444', border: '1px solid #EF444455' }}>
+                    <AlertTriangle size={11} /> Bid Decision
+                  </span>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 9, color: t.textTer, textTransform: 'uppercase', letterSpacing: 0.5 }}>Compliance</span>
+                    <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: compPct >= 90 ? '#10B981' : compPct >= 75 ? '#F59E0B' : '#EF4444' }}>{compPct}%</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 9, color: t.textTer, textTransform: 'uppercase', letterSpacing: 0.5 }}>Addressed</span>
+                    <div style={{ width: 90, height: 5, background: t.bg, borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: pct + '%', background: pct === 100 ? '#10B981' : pct >= 60 ? 'linear-gradient(90deg,#F59E0B,#10B981)' : 'linear-gradient(90deg,#EF4444,#F59E0B)', borderRadius: 3 }} />
+                    </div>
+                    <span className="mono" style={{ fontSize: 11, fontWeight: 600, color: pct === 100 ? '#10B981' : t.textSec }}>{pct}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <button onClick={() => setExtractOpen(!extractOpen)} style={{ padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{reqs.length ? '+ Extract More' : 'Extract from RFP'}</button>
+            {reqs.length > 0 && <button onClick={clearAll} style={{ padding: '8px 10px', borderRadius: 8, color: t.danger, fontSize: 12, cursor: 'pointer', border: '1px solid ' + t.danger + '30' }}>Clear</button>}
+            <button onClick={onClose} style={{ padding: 8, color: t.textTer, cursor: 'pointer' }}><X size={16} /></button>
+          </div>
+        </div>
+
+        {extractOpen && (
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid ' + t.border, background: t.surface }}>
+            <p style={{ fontSize: 12, color: t.textSec, margin: '0 0 10px' }}>Paste Section L, Section M, and/or the SOW below. AI extracts every shall/must/submission requirement and maps each to a proposal section.</p>
+            <textarea value={rfpText} onChange={e => setRfpText(e.target.value)} rows={8} placeholder="Paste solicitation text here..." style={{ width: '100%', padding: 12, borderRadius: 8, background: t.bg, border: '1px solid ' + t.border, fontSize: 12, color: t.text, resize: 'vertical', fontFamily: 'inherit' }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
+              <button onClick={() => setExtractOpen(false)} style={{ padding: '8px 14px', borderRadius: 8, color: t.textSec, fontSize: 12, cursor: 'pointer', border: '1px solid ' + t.border }}>Cancel</button>
