@@ -1,0 +1,125 @@
+=== KickoffPanel location + size ===
+7088:function KickoffPanel({ t, proposal, sections, opp, onClose }) {
+
+=== KickoffPanel verbatim (first 120 lines) ===
+7088: function KickoffPanel({ t, proposal, sections, opp, onClose }) {
+7089:   const [reqs, setReqs] = useState([]);
+7090:   const [loaded, setLoaded] = useState(false);
+7091:   const [copied, setCopied] = useState(false);
+7092:   useEffect(() => { db.compliance.listByProposal(proposal.id).then(r => { setReqs(r); setLoaded(true); }).catch(() => setLoaded(true)); }, [proposal.id]);
+7093: 
+7094:   const cap = (opp && opp.capture) || {};
+7095:   const themes = proposal.win_themes || [];
+7096:   const hotButtons = Array.isArray(cap.hot_buttons) ? cap.hot_buttons.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99)) : [];
+7097:   const CG = { full: 1, na: 1, partial: 0.5, non: 0 };
+7098:   const compPct = reqs.length ? Math.round(reqs.reduce((s, r) => s + (CG[r.compliance_grade] ?? 1), 0) / reqs.length * 100) : null;
+7099:   const nonComply = reqs.filter(r => r.compliance_grade === 'non').length;
+7100:   const hidden = reqs.filter(r => r.is_hidden).length;
+7101:   const draftedCount = sections.filter(s => (s.content || '').trim()).length;
+7102:   const plannedCount = sections.filter(s => s.content_plan_status === 'approved').length;
+7103: 
+7104:   const buildText = () => {
+7105:     const L = [];
+7106:     L.push('PROPOSAL KICKOFF PACKET');
+7107:     L.push(proposal.title + (opp ? '  ·  ' + (opp.solicitation_number || '') : ''));
+7108:     L.push('');
+7109:     L.push('== BID SUMMARY ==');
+7110:     if (opp) {
+7111:       L.push('Agency: ' + (opp.agency || 'TBD'));
+7112:       L.push('Solicitation: ' + (opp.solicitation_number || 'TBD'));
+7113:       L.push('Set-aside: ' + (opp.set_aside || 'TBD') + '   NAICS: ' + (opp.naics || 'TBD'));
+7114:       L.push('Value: ' + (opp.estimated_value ? '$' + Number(opp.estimated_value).toLocaleString() : 'TBD') + '   Due: ' + (opp.due_date || 'TBD'));
+7115:     }
+7116:     L.push('Sections: ' + sections.length + ' total · ' + plannedCount + ' with approved content plan · ' + draftedCount + ' drafted');
+7117:     L.push('');
+7118:     L.push('== COMPLIANCE SNAPSHOT ==');
+7119:     if (compPct === null) L.push('No requirements extracted yet — run the Compliance matrix.');
+7120:     else { L.push('Compliance: ' + compPct + '%' + (compPct < 90 ? '  ⚠ BELOW 90% — BID DECISION REQUIRED' : '')); L.push(reqs.length + ' requirements · ' + nonComply + ' non-compliant · ' + hidden + ' hidden (narrative) requirements'); }
+7121:     L.push('');
+7122:     L.push('== CAPTURE INTELLIGENCE ==');
+7123:     if (hotButtons.length) { L.push('Hot buttons (customer priorities):'); hotButtons.forEach(h => L.push('  #' + h.rank + ' ' + (h.text || ''))); }
+7124:     else L.push('No hot buttons captured — complete the Capture card on the opportunity.');
+7125:     if ((cap.motivators || []).length) L.push('Motivators: ' + cap.motivators.join('; '));
+7126:     if ((cap.issues || []).length) L.push('Issues: ' + cap.issues.join('; '));
+7127:     const namedBuyers = (cap.buyers || []).filter(b => b.name || b.concerns);
+7128:     if (namedBuyers.length) { L.push('Buyers:'); namedBuyers.forEach(b => L.push('  [' + b.type + '] ' + (b.name || '') + (b.role ? ' (' + b.role + ')' : '') + (b.concerns ? ' — ' + b.concerns : ''))); }
+7129:     if ((cap.bcm || []).length) { L.push('Competitive (BCM):'); cap.bcm.forEach(r => L.push('  ' + (r.competitor || '?') + ' — weakness: ' + (r.weaknesses || 'n/a') + ' → ghost: ' + (r.counter || 'n/a'))); }
+7130:     L.push('');
+7131:     L.push('== WIN THEMES ==');
+7132:     if (!themes.length) L.push('No themes defined.');
+7133:     else themes.forEach((th, i) => { L.push((i + 1) + '. ' + (th.label || '')); if (th.statement) L.push('   ' + th.statement); const flags = []; if (!th.proof_point_id) flags.push('NO PROOF LINKED'); if (!(th.litmus_unique && th.litmus_scorable)) flags.push('FAILS LITMUS'); if (flags.length) L.push('   ⚠ ' + flags.join(' · ')); });
+7134:     L.push('');
+7135:     L.push('== SECTION BRIEFS (content plans) ==');
+7136:     sections.forEach(s => {
+7137:       const pl = (s.content_plan_status === 'approved') ? s.content_plan : null;
+7138:       L.push('• ' + (s.volume || '') + ' :: ' + s.title + (pl ? '' : '  [no approved plan]'));
+7139:       if (pl) {
+7140:         if (pl.key_question) L.push('   Q: ' + pl.key_question);
+7141:         if (pl.requirements && pl.requirements.length) L.push('   Reqs: ' + pl.requirements.join('; '));
+7142:         if (pl.proof_points && pl.proof_points.length) L.push('   Proof: ' + pl.proof_points.join('; '));
+7143:         if (pl.page_budget) L.push('   Pages: ~' + pl.page_budget);
+7144:       }
+7145:     });
+7146:     return L.join('\n');
+7147:   };
+7148: 
+7149:   const copy = async () => { try { await navigator.clipboard.writeText(buildText()); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch(e) { alert('Copy failed'); } };
+7150: 
+7151:   const H = ({ children }) => <h3 style={{ fontSize: 12, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '20px 0 10px' }}>{children}</h3>;
+7152:   const flag = (txt) => <span style={{ color: '#EF4444', fontWeight: 600 }}>{txt}</span>;
+7153: 
+7154:   return (
+7155:     <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.7)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+7156:       <div onClick={e => e.stopPropagation()} style={{ background: t.bgSubtle, borderRadius: 16, border: '1px solid ' + t.border, width: '100%', maxWidth: 860, maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+7157:         <div style={{ padding: '18px 24px', borderBottom: '1px solid ' + t.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+7158:           <div>
+7159:             <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: t.text }}>Kickoff Packet</h2>
+7160:             <p style={{ fontSize: 12, color: t.textSec, margin: '4px 0 0' }}>{proposal.title} — everything the team needs to start writing</p>
+7161:           </div>
+7162:           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+7163:             <button onClick={copy} style={{ padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{copied ? 'Copied ✓' : 'Copy packet'}</button>
+7164:             <button onClick={onClose} style={{ padding: 8, color: t.textTer, cursor: 'pointer' }}><X size={16} /></button>
+7165:           </div>
+7166:         </div>
+7167:         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 24px 24px', fontSize: 13, color: t.textSec, lineHeight: 1.6 }}>
+7168:           {!loaded ? <div style={{ padding: 40, textAlign: 'center', color: t.textTer }}>Assembling…</div> : <>
+7169:             <H>Bid summary</H>
+7170:             {opp ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+7171:               <div>Agency: <b style={{ color: t.text }}>{opp.agency || 'TBD'}</b></div>
+7172:               <div>Solicitation: <b style={{ color: t.text }}>{opp.solicitation_number || 'TBD'}</b></div>
+7173:               <div>Set-aside: <b style={{ color: t.text }}>{opp.set_aside || 'TBD'}</b></div>
+7174:               <div>NAICS: <b style={{ color: t.text }}>{opp.naics || 'TBD'}</b></div>
+7175:               <div>Value: <b style={{ color: t.text }}>{opp.estimated_value ? '$' + Number(opp.estimated_value).toLocaleString() : 'TBD'}</b></div>
+7176:               <div>Due: <b style={{ color: t.text }}>{opp.due_date || 'TBD'}</b></div>
+7177:             </div> : <div style={{ color: t.textTer }}>No opportunity linked.</div>}
+7178:             <div style={{ marginTop: 8 }}>{sections.length} sections · {plannedCount} planned · {draftedCount} drafted</div>
+7179: 
+7180:             <H>Compliance snapshot</H>
+7181:             {compPct === null ? <div style={{ color: t.textTer }}>No requirements extracted — run the Compliance matrix.</div> : <div>
+7182:               <span style={{ fontSize: 20, fontWeight: 700, color: compPct >= 90 ? '#10B981' : '#EF4444' }}>{compPct}%</span> compliant
+7183:               {compPct < 90 && <span> — {flag('below 90%, bid decision required')}</span>}
+7184:               <div style={{ marginTop: 4 }}>{reqs.length} requirements · {nonComply} non-compliant · {hidden} hidden</div>
+7185:             </div>}
+7186: 
+7187:             <H>Capture intelligence</H>
+7188:             {hotButtons.length ? <div>{hotButtons.map((h, i) => <div key={i}><b style={{ color: t.accent }}>#{h.rank}</b> {h.text}</div>)}</div> : <div style={{ color: t.textTer }}>No hot buttons captured — complete the Capture card on the opportunity.</div>}
+7189:             {(cap.bcm || []).length > 0 && <div style={{ marginTop: 8 }}>{cap.bcm.map((r, i) => <div key={i} style={{ fontSize: 12 }}>{r.competitor || '?'} → ghost: {r.counter || 'n/a'}</div>)}</div>}
+7190: 
+7191:             <H>Win themes</H>
+7192:             {!themes.length ? <div style={{ color: t.textTer }}>No themes defined.</div> : themes.map((th, i) => {
+7193:               const flags = []; if (!th.proof_point_id) flags.push('no proof'); if (!(th.litmus_unique && th.litmus_scorable)) flags.push('fails litmus');
+7194:               return <div key={i} style={{ marginBottom: 8 }}><b style={{ color: t.text }}>{i + 1}. {th.label}</b>{flags.length > 0 && <span> — {flag(flags.join(' · '))}</span>}{th.statement && <div style={{ fontSize: 12, fontStyle: 'italic' }}>{th.statement}</div>}</div>;
+7195:             })}
+7196: 
+7197:             <H>Section briefs</H>
+7198:             {sections.map(s => {
+7199:               const pl = (s.content_plan_status === 'approved') ? s.content_plan : null;
+7200:               return <div key={s.id} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid ' + t.borderSubtle }}>
+7201:                 <b style={{ color: t.text }}>{s.title}</b> <span style={{ fontSize: 11, color: t.textTer }}>{s.volume}</span>{!pl && <span style={{ fontSize: 11, color: t.textTer }}> — no approved plan</span>}
+7202:                 {pl && <div style={{ fontSize: 12, marginTop: 4 }}>{pl.key_question && <div>Q: {pl.key_question}</div>}{pl.page_budget && <div style={{ color: t.textTer }}>~{pl.page_budget} pages</div>}</div>}
+7203:               </div>;
+7204:             })}
+7205:           </>}
+7206:         </div>
+7207:       </div>
+7208:     </div>
