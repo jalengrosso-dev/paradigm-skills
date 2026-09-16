@@ -1,0 +1,127 @@
+=== KeyPersonnelView + db ===
+314:  keypersonnel: {
+315:    list: async () => { const { data, error } = await supabase.from('key_personnel').select('*').order('updated_at', { ascending: false }); if (error) throw error; return data || []; },
+316:    create: async (row) => { const { data, error } = await supabase.from('key_personnel').insert(row).select().single(); if (error) throw error; return data; },
+317:    update: async (id, patch) => { const { data, error } = await supabase.from('key_personnel').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single(); if (error) throw error; return data; },
+318:    remove: async (id) => { const { error } = await supabase.from('key_personnel').delete().eq('id', id); if (error) throw error; },
+6358:function KeyPersonnelView({ t, keypersonnel, clients, refresh }) {
+
+=== KeyPersonnelView verbatim (first 100 lines) ===
+6358: function KeyPersonnelView({ t, keypersonnel, clients, refresh }) {
+6359:   const [showModal, setShowModal] = useState(false);
+6360:   const [editing, setEditing] = useState(null);
+6361:   const [q, setQ] = useState('');
+6362:   const [clientFilter, setClientFilter] = useState('');
+6363:   const [form, setForm] = useState({ name: '', title: '', labor_category: '', client_id: '', years_experience: '', clearance: '', education: '', certifications: [], bio: '', tags: [] });
+6364:   const [busy, setBusy] = useState(false);
+6365: 
+6366:   const open = (kp) => {
+6367:     if (kp) { setEditing(kp); setForm({ name: kp.name || '', title: kp.title || '', labor_category: kp.labor_category || '', client_id: kp.client_id || '', years_experience: kp.years_experience ?? '', clearance: kp.clearance || '', education: kp.education || '', certifications: kp.certifications || [], bio: kp.bio || '', tags: kp.tags || [] }); }
+6368:     else { setEditing(null); setForm({ name: '', title: '', labor_category: '', client_id: '', years_experience: '', clearance: '', education: '', certifications: [], bio: '', tags: [] }); }
+6369:     setShowModal(true);
+6370:   };
+6371: 
+6372:   const save = async () => {
+6373:     if (!form.name.trim()) return alert('Name is required.');
+6374:     setBusy(true);
+6375:     try {
+6376:       const payload = { ...form, client_id: form.client_id || null, years_experience: form.years_experience === '' ? null : Number(form.years_experience) };
+6377:       if (editing) await db.keypersonnel.update(editing.id, payload); else await db.keypersonnel.create(payload);
+6378:       setShowModal(false);
+6379:       await refresh();
+6380:     } catch(e) { alert('Save failed: ' + e.message); }
+6381:     finally { setBusy(false); }
+6382:   };
+6383: 
+6384:   const remove = async (kp) => {
+6385:     if (!confirm('Delete this person?')) return;
+6386:     try { await db.keypersonnel.remove(kp.id); await refresh(); } catch(e) { alert('Delete failed: ' + e.message); }
+6387:   };
+6388: 
+6389:   const filtered = keypersonnel.filter(kp => {
+6390:     if (clientFilter && kp.client_id !== clientFilter) return false;
+6391:     if (q) { const hay = (kp.name + ' ' + (kp.title || '') + ' ' + (kp.labor_category || '') + ' ' + (kp.tags || []).join(' ')).toLowerCase(); if (!hay.includes(q.toLowerCase())) return false; }
+6392:     return true;
+6393:   });
+6394: 
+6395:   const inp = { width: '100%', padding: '9px 11px', borderRadius: 8, background: t.bg, border: '1px solid ' + t.border, fontSize: 13, color: t.text, fontFamily: 'inherit' };
+6396:   const lbl = { fontSize: 11, fontWeight: 600, color: t.textSec, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'block' };
+6397: 
+6398:   return (
+6399:     <div className="fade-in" style={{ padding: 32, maxWidth: 1100, margin: '0 auto' }}>
+6400:       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 12 }}>
+6401:         <div>
+6402:           <h1 className="display" style={{ fontSize: 28, fontWeight: 600, margin: 0, color: t.text }}>Key Personnel</h1>
+6403:           <p style={{ fontSize: 13, color: t.textSec, margin: '6px 0 0' }}>Reusable resumes for proposal Volume 2 and capability statements. {keypersonnel.length} on file.</p>
+6404:         </div>
+6405:         <button onClick={() => open(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}><Plus size={15} /> New Person</button>
+6406:       </div>
+6407: 
+6408:       <div style={{ display: 'flex', gap: 8, margin: '20px 0 16px', flexWrap: 'wrap' }}>
+6409:         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search name, title, labor category…" style={{ ...inp, flex: 1, minWidth: 200 }} />
+6410:         <select value={clientFilter} onChange={e => setClientFilter(e.target.value)} style={{ ...inp, width: 'auto' }}>
+6411:           <option value="">All clients</option>
+6412:           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+6413:         </select>
+6414:       </div>
+6415: 
+6416:       {filtered.length === 0 ? (
+6417:         <div style={{ padding: 50, textAlign: 'center', background: t.surface, borderRadius: 12, border: '1px solid ' + t.border }}>
+6418:           <p style={{ fontSize: 14, color: t.text, fontWeight: 500, margin: '0 0 6px' }}>No key personnel yet</p>
+6419:           <p style={{ fontSize: 12, color: t.textSec, margin: 0 }}>Add the people who perform the work — PMs, superintendents, site leads. They'll be available to proposal Key Personnel sections.</p>
+6420:         </div>
+6421:       ) : filtered.map(kp => {
+6422:         const cl = clients.find(c => c.id === kp.client_id);
+6423:         return (
+6424:           <div key={kp.id} style={{ background: t.surface, borderRadius: 10, padding: 16, border: '1px solid ' + t.border, marginBottom: 8 }}>
+6425:             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+6426:               <div style={{ flex: 1 }}>
+6427:                 <div style={{ fontSize: 15, color: t.text, fontWeight: 600 }}>{kp.name}{kp.title ? <span style={{ fontSize: 13, color: t.textSec, fontWeight: 400 }}> — {kp.title}</span> : null}</div>
+6428:                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, fontSize: 12, color: t.textSec }}>
+6429:                   {kp.labor_category && <span style={{ color: t.accent, fontWeight: 500 }}>{kp.labor_category}</span>}
+6430:                   {kp.years_experience != null && <span>{kp.years_experience} yrs</span>}
+6431:                   {kp.clearance && <span>Clearance: {kp.clearance}</span>}
+6432:                   {cl && <span>{cl.name}</span>}
+6433:                 </div>
+6434:                 {kp.bio && <div style={{ fontSize: 12, color: t.textSec, marginTop: 8, lineHeight: 1.5 }}>{kp.bio.substring(0, 200)}{kp.bio.length > 200 ? '…' : ''}</div>}
+6435:               </div>
+6436:               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+6437:                 <button onClick={() => downloadResume(kp)} style={{ fontSize: 12, color: t.accent, cursor: 'pointer', fontWeight: 500 }}>Resume</button>
+6438:                 <button onClick={() => open(kp)} style={{ fontSize: 12, color: t.textSec, cursor: 'pointer' }}>Edit</button>
+6439:                 <button onClick={() => remove(kp)} style={{ fontSize: 12, color: t.danger, cursor: 'pointer' }}>Delete</button>
+6440:               </div>
+6441:             </div>
+6442:           </div>
+6443:         );
+6444:       })}
+6445: 
+6446:       {showModal && (
+6447:         <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.7)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowModal(false)}>
+6448:           <div onClick={e => e.stopPropagation()} style={{ background: t.bgSubtle, borderRadius: 16, border: '1px solid ' + t.border, width: '100%', maxWidth: 620, maxHeight: '88vh', overflowY: 'auto', padding: 24 }}>
+6449:             <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px', color: t.text }}>{editing ? 'Edit' : 'New'} Key Person</h2>
+6450:             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+6451:               <div style={{ flex: 1 }}><label style={lbl}>Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Full name" style={inp} /></div>
+6452:               <div style={{ flex: 1 }}><label style={lbl}>Title</label><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Project Manager" style={inp} /></div>
+6453:             </div>
+6454:             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+6455:               <div style={{ flex: 1 }}><label style={lbl}>Labor category</label><input value={form.labor_category} onChange={e => setForm({ ...form, labor_category: e.target.value })} placeholder="Senior PM / Site Superintendent" style={inp} /></div>
+6456:               <div style={{ width: 120 }}><label style={lbl}>Years exp.</label><input type="number" value={form.years_experience} onChange={e => setForm({ ...form, years_experience: e.target.value })} style={inp} /></div>
+6457:             </div>
+6458:             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+
+=== proposal link to personnel ===
+314:  keypersonnel: {
+315:    list: async () => { const { data, error } = await supabase.from('key_personnel').select('*').order('updated_at', { ascending: false }); if (error) throw error; return data || []; },
+316:    create: async (row) => { const { data, error } = await supabase.from('key_personnel').insert(row).select().single(); if (error) throw error; return data; },
+317:    update: async (id, patch) => { const { data, error } = await supabase.from('key_personnel').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single(); if (error) throw error; return data; },
+318:    remove: async (id) => { const { error } = await supabase.from('key_personnel').delete().eq('id', id); if (error) throw error; },
+508:  const [keypersonnel, setKeypersonnel] = useState([]);
+525:      db.docs.list(), db.notifs.list(), db.suggestions.list(), db.prospects.list(), db.scores.listAll(), db.surety.list(), db.proposals.list(), db.revenue.list(), db.outreachDrafts.listPending(), db.library.list(), db.contracts.list(), db.proofpoints.list(), db.keypersonnel.list()
+528:      setOpps(o); setTasks(tk); setEvents(e); setDocs(d); setNotifs(n); setSuggestions(s); setProspects(pr); setScores(sc); setSuretyAgents(su); setProposals(pp); setRevenue(rv); setOutreachDrafts(od); setLibrary(lib); setContracts(ctr); setProofpoints(ppts); setKeypersonnel(kpers);
+573:    keypersonnel: async () => setKeypersonnel(await db.keypersonnel.list()),
+605:          {view === 'keypersonnel' && <KeyPersonnelView {...{ t, keypersonnel, clients, refresh: refresh.keypersonnel }} />}
+1504:      { id: 'keypersonnel', label: 'Key Personnel', icon: Users },
+5745:        if (client) { try { kpRecords = (await db.keypersonnel.list()).filter(k => k.client_id === client.id); } catch(e) {} }
+6377:      if (editing) await db.keypersonnel.update(editing.id, payload); else await db.keypersonnel.create(payload);
+6386:    try { await db.keypersonnel.remove(kp.id); await refresh(); } catch(e) { alert('Delete failed: ' + e.message); }
+6389:  const filtered = keypersonnel.filter(kp => {
