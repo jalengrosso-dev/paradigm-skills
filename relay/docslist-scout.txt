@@ -1,0 +1,46 @@
+4188: function DocsList({ t, docs }) {
+4189:   return (
+4190:     <div style={{ background: t.surface, borderRadius: 12, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+4191:       {docs.length === 0 ? <div style={{ padding: 40, textAlign: 'center', color: t.textTer, fontSize: 13 }}>No documents yet.</div> : docs.map((d, i) => (
+4192:         <div key={d.id} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 16, borderBottom: i < docs.length - 1 ? `1px solid ${t.borderSubtle}` : 'none' }}>
+4193:           <div style={{ width: 36, height: 36, borderRadius: 8, background: t.bgSubtle, color: t.textSec, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileText size={16} /></div>
+4194:           <div style={{ flex: 1, minWidth: 0 }}>
+4195:             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 13, color: t.text, fontWeight: 500 }}>{d.name}</span>{d.locked && <Lock size={11} style={{ color: t.warning }} />}</div>
+4196:             <div style={{ fontSize: 11, color: t.textTer, marginTop: 2 }}>{d.type} · v{d.version} · {d.size} · {fmtDate(d.last_modified)}</div>
+4197:           </div>
+4198:         </div>
+4199:       ))}
+4200:     </div>
+4201:   );
+4202: }
+4203: function Onboarding({ t, client }) {
+4204:   const items = [
+4205:     { phase: 'Phase 1 — Foundation', list: [
+4206:       { l: 'LLC formation and EIN confirmed', d: true }, { l: 'Professional website live', d: !!client.website },
+4207:       { l: 'SAM.gov registration complete', d: !!client.uei }, { l: 'CAGE code assigned', d: !!client.cage },
+4208:       { l: 'DSBS/SBA profile complete', d: client.phase >= 2 },
+4209:       { l: 'Capability statement reviewed', d: client.phase >= 2 },
+4210:       { l: 'Certifications identified', d: (client.certifications || []).length > 0 },
+4211:       { l: 'NAICS codes confirmed', d: (client.naics || []).length > 0 },
+4212:       { l: 'Professional email', d: true },
+4213:     ]},
+4214:     { phase: 'Phase 2 — Revenue Entry', list: [
+4215:       { l: 'First micro-purchase or simplified acquisition win', d: client.phase >= 3 },
+4216:       { l: 'Subcontracting relationship established with a prime', d: client.phase >= 3 },
+4217:       { l: 'First past performance reference created', d: (client.contracts_won || 0) > 0 },
+4218:       { l: 'BPA or IDIQ vehicle identified', d: client.phase >= 3 },
+4219:       { l: 'State/local bridge revenue', d: client.phase >= 2 },
+4220:     ]},
+4221:   ];
+4222:   return (
+4223:     <div>
+4224:       {items.map(g => (
+4225:         <div key={g.phase} style={{ marginBottom: 24 }}>
+4226:           <h3 style={{ fontSize: 12, fontWeight: 600, color: t.textSec, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>{g.phase}</h3>
+4227:           <div style={{ background: t.surface, borderRadius: 12, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+4228:             {g.list.map((item, i) => (
+4229:               <div key={i} style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: i < g.list.length - 1 ? `1px solid ${t.borderSubtle}` : 'none' }}>
+4230:                 <div style={{ width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${item.d ? t.success : t.borderStrong}`, background: item.d ? t.success : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{item.d && <Check size={12} color="#0A0B0E" strokeWidth={3} />}</div>
+4231:                 <span style={{ fontSize: 13, color: item.d ? t.textSec : t.text, textDecoration: item.d ? 'line-through' : 'none' }}>{item.l}</span>
+4232:               </div>
+4233:             ))}
