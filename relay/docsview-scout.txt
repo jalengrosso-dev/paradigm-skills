@@ -1,0 +1,113 @@
+=== db.docs signed url helper (250-268) ===
+    remove: async (id) => { const { error } = await supabase.from('documents').delete().eq('id', id); if (error) throw error; },
+    update: async (id, patch) => { const { data, error } = await supabase.from('documents').update(patch).eq('id', id).select().single(); if (error) throw error; return data; },
+    upload: async (file) => {
+      const path = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const { error } = await supabase.storage.from('documents').upload(path, file);
+      if (error) throw error;
+      return { file_path: path, file_name: file.name, file_size: file.size, file_type: file.type };
+    },
+    getUrl: async (path) => {
+      const { data, error } = await supabase.storage.from('documents').createSignedUrl(path, 3600);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    removeFile: async (path) => {
+      const { error } = await supabase.storage.from('documents').remove([path]);
+      if (error) throw error;
+    },
+  },
+  clientRequests: {
+
+=== DocsView verbatim (9133 + 75) ===
+9133: function DocsView({ t, docs, clients, opps, refresh }) {
+9134:   const [modal, setModal] = useState(false);
+9135:   const [filter, setFilter] = useState('all');
+9136:   const [droppedFile, setDroppedFile] = useState(null);
+9137:   const [pageDrag, setPageDrag] = useState(false);
+9138:   const [editing, setEditing] = useState(null);
+9139: 
+9140:   const openFile = async (d) => {
+9141:     try { const url = await db.docs.getUrl(d.file_path); window.open(url, '_blank'); }
+9142:     catch(e) { alert('Failed: ' + e.message); }
+9143:   };
+9144: 
+9145:   const versionInputRef = React.useRef(null);
+9146:   const [versionTarget, setVersionTarget] = useState(null);
+9147: 
+9148:   const triggerVersionUpload = (d) => {
+9149:     if (d.locked) return alert('Document is locked. Unlock it first to upload a new version.');
+9150:     setVersionTarget(d);
+9151:     setTimeout(() => versionInputRef.current?.click(), 0);
+9152:   };
+9153: 
+9154:   const handleVersionFile = async (e) => {
+9155:     const f = e.target.files[0];
+9156:     e.target.value = '';
+9157:     if (!f || !versionTarget) return;
+9158:     try {
+9159:       const fileFields = await db.docs.upload(f);
+9160:       if (versionTarget.file_path) { try { await db.docs.removeFile(versionTarget.file_path); } catch(err) {} }
+9161:       const newVersion = (Number(versionTarget.version) || 1) + 1;
+9162:       const fmtBytes = (b) => b > 1048576 ? (b/1048576).toFixed(1) + ' MB' : (b/1024).toFixed(0) + ' KB';
+9163:       await db.docs.update(versionTarget.id, { ...fileFields, size: fmtBytes(f.size), version: newVersion, last_modified: new Date().toISOString() });
+9164:       setVersionTarget(null);
+9165:       refresh.docs();
+9166:     } catch(err) { alert('Failed: ' + err.message); setVersionTarget(null); }
+9167:   };
+9168: 
+9169:   const DOC_TYPES = ['RFP', 'Proposal', 'Capability Statement', 'Teaming Agreement', 'NDA', 'Subcontracting Plan', 'Past Performance', 'Price Volume', 'Compliance Matrix', 'Correspondence', 'Contract', 'Modification', 'Invoice', 'CPARS', 'Other'];
+9170: 
+9171:   const filtered = filter === 'all' ? docs : docs.filter(d => d.type === filter);
+9172: 
+9173:   const remove = async (d) => {
+9174:     if (d.locked) return alert('This document is locked. Unlock it first to delete.');
+9175:     if (!confirm('Delete document "' + d.name + '"?')) return;
+9176:     try {
+9177:       if (d.file_path) { try { await db.docs.removeFile(d.file_path); } catch(e) {} }
+9178:       await db.docs.remove(d.id);
+9179:       refresh.docs();
+9180:     }
+9181:     catch(e) { alert('Failed: ' + e.message); }
+9182:   };
+9183: 
+9184:   return (
+9185:     <div className="fade-in"
+9186:       onDragOver={e => { e.preventDefault(); setPageDrag(true); }}
+9187:       onDragLeave={e => { if (e.currentTarget === e.target) setPageDrag(false); }}
+9188:       onDrop={e => { e.preventDefault(); setPageDrag(false); const f = e.dataTransfer.files[0]; if (f) { setDroppedFile(f); setModal(true); } }}
+9189:       style={{ padding: 32, maxWidth: 1400, margin: '0 auto', outline: pageDrag ? '2px dashed ' + t.accent : 'none', outlineOffset: -8, borderRadius: 12 }}>
+9190:       <input ref={versionInputRef} type="file" style={{ display: 'none' }} onChange={handleVersionFile} />
+9191:       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+9192:         <div>
+9193:           <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>Documents</h1>
+9194:           <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>{docs.length} files tracked</p>
+9195:         </div>
+9196:         <button onClick={() => setModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}><Plus size={15} /> New Document</button>
+9197:       </div>
+9198:       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+9199:         <button onClick={() => setFilter('all')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500, background: filter === 'all' ? t.accent : t.surface, color: filter === 'all' ? '#0A0B0E' : t.textSec, border: '1px solid ' + t.border, cursor: 'pointer' }}>All ({docs.length})</button>
+9200:         {DOC_TYPES.filter(dt => docs.some(d => d.type === dt)).map(dt => (
+9201:           <button key={dt} onClick={() => setFilter(dt)} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 500, background: filter === dt ? t.accent : t.surface, color: filter === dt ? '#0A0B0E' : t.textSec, border: '1px solid ' + t.border, cursor: 'pointer' }}>{dt} ({docs.filter(d => d.type === dt).length})</button>
+9202:         ))}
+9203:       </div>
+9204:       <div style={{ background: t.surface, borderRadius: 12, border: '1px solid ' + t.border, overflow: 'hidden' }}>
+9205:         {filtered.length === 0 ? (
+9206:           <div style={{ textAlign: 'center', padding: 60, color: t.textTer }}>
+9207:             <FileText size={32} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+9208:             <p style={{ fontSize: 13, margin: 0 }}>{docs.length === 0 ? 'No documents yet. Click "New Document" to track one.' : 'No documents match this filter.'}</p>
+9209:           </div>
+9210:         ) : filtered.map((d, i) => {
+9211:           const c = clients.find(x => x.id === d.client_id);
+9212:           const o = opps ? opps.find(x => x.id === d.opportunity_id) : null;
+9213:           return (
+9214:             <div key={d.id} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 16, borderBottom: i < filtered.length - 1 ? '1px solid ' + t.borderSubtle : 'none' }}>
+9215:               <div style={{ width: 40, height: 40, borderRadius: 10, background: t.bgSubtle, color: t.textSec, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileText size={18} /></div>
+9216:               <div style={{ flex: 1, minWidth: 0 }}>
+9217:                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+9218:                   <span style={{ fontSize: 13, color: t.text, fontWeight: 500 }}>{d.name}</span>
+9219:                   {d.locked && <Lock size={11} style={{ color: t.warning }} />}
+9220:                   {d.client_visible && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 600, background: t.info + '20', color: t.info }}>PORTAL</span>}
+9221:                 </div>
+9222:                 <div style={{ fontSize: 11, color: t.textTer, marginTop: 2 }}>
+9223:                   {c ? c.name : 'No client'} {o ? ' · ' + o.solicitation_number : ''} · {d.type} · v{d.version || 1} · {fmtDate(d.last_modified || d.created_at)}
