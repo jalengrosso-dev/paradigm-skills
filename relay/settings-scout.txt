@@ -1,0 +1,76 @@
+=== SettingsView location ===
+625:          {view === 'settings' && <SettingsView {...{ t, dark, setDark, logout, session }} />}
+11701:function SettingsView({ t, dark, setDark, logout, session }) {
+
+=== SettingsView verbatim (first 70) ===
+11701: function SettingsView({ t, dark, setDark, logout, session }) {
+11702:   const [aiEnabled, setAiEnabled] = useState(true);
+11703:   const [aiLoading, setAiLoading] = useState(true);
+11704:   useEffect(() => {
+11705:     let alive = true;
+11706:     (async () => {
+11707:       try {
+11708:         const { data } = await supabase.from('app_settings').select('value').eq('key', 'auto_ai_enabled').single();
+11709:         if (alive && data) setAiEnabled(data.value === true || data.value === 'true');
+11710:       } catch (e) { /* default-safe: leave ON */ }
+11711:       finally { if (alive) setAiLoading(false); }
+11712:     })();
+11713:     return () => { alive = false; };
+11714:   }, []);
+11715:   const toggleAi = async () => {
+11716:     const next = !aiEnabled;
+11717:     setAiEnabled(next);
+11718:     setAiLoading(true);
+11719:     try {
+11720:       const { error } = await supabase.from('app_settings').update({ value: next, updated_at: new Date().toISOString() }).eq('key', 'auto_ai_enabled');
+11721:       if (error) throw error;
+11722:     } catch (e) {
+11723:       setAiEnabled(!next);
+11724:       alert('Could not save that setting: ' + (e.message || e));
+11725:     } finally { setAiLoading(false); }
+11726:   };
+11727:   return (
+11728:     <div className="fade-in" style={{ padding: 32, maxWidth: 900, margin: '0 auto' }}>
+11729:       <div style={{ marginBottom: 32 }}>
+11730:         <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>Settings</h1>
+11731:         <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>System health, automation, and account controls.</p>
+11732:       </div>
+11733:       <SystemHealthPanel t={t} />
+11734:       <AutomationPanel t={t} />
+11735:       <div style={{ background: t.surface, borderRadius: 12, padding: 24, border: `1px solid ${t.border}`, marginBottom: 16 }}>
+11736:         <h3 style={{ fontSize: 14, fontWeight: 600, marginTop: 0, marginBottom: 4, color: t.text }}>Automatic AI Scoring</h3>
+11737:         <p style={{ color: t.textSec, marginTop: 0, marginBottom: 16, fontSize: 12 }}>When on, new opportunities are scored automatically on ingest and rescore. Turn off to pause automated Claude calls and stop the token spend — your manual Score buttons still work.</p>
+11738:         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
+11739:           <div><div style={{ fontSize: 13, color: t.text, fontWeight: 500 }}>{aiEnabled ? 'Enabled' : 'Paused'}</div><div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>{aiLoading ? 'Saving…' : (aiEnabled ? 'Pipeline is scoring automatically' : 'Automated scoring is paused')}</div></div>
+11740:           <button onClick={toggleAi} disabled={aiLoading} style={{ width: 44, height: 24, borderRadius: 12, background: aiEnabled ? t.accent : t.borderStrong, position: 'relative', cursor: aiLoading ? 'wait' : 'pointer', opacity: aiLoading ? 0.6 : 1, border: 'none' }}>
+11741:             <div style={{ width: 18, height: 18, borderRadius: 9, background: '#fff', position: 'absolute', top: 3, left: aiEnabled ? 23 : 3, transition: 'all 0.2s' }} />
+11742:           </button>
+11743:         </div>
+11744:       </div>
+11745:       <div style={{ background: t.surface, borderRadius: 12, padding: 24, border: `1px solid ${t.border}`, marginBottom: 16 }}>
+11746:         <h3 style={{ fontSize: 14, fontWeight: 600, marginTop: 0, marginBottom: 16, color: t.text }}>Account</h3>
+11747:         <Row t={t} label="Signed in as" value={session?.user?.email || '—'} />
+11748:         <Row t={t} label="User ID" value={(session?.user?.id?.slice(0, 8) || '—') + '…'} mono />
+11749:         <button onClick={logout} style={{ marginTop: 16, padding: '10px 16px', borderRadius: 8, background: `${t.danger}15`, color: t.danger, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Sign Out</button>
+11750:       </div>
+11751:       <div style={{ background: t.surface, borderRadius: 12, padding: 24, border: `1px solid ${t.border}`, marginBottom: 16 }}>
+11752:         <h3 style={{ fontSize: 14, fontWeight: 600, marginTop: 0, marginBottom: 16, color: t.text }}>Appearance</h3>
+11753:         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
+11754:           <div><div style={{ fontSize: 13, color: t.text, fontWeight: 500 }}>Dark Mode</div></div>
+11755:           <button onClick={() => setDark(!dark)} style={{ width: 44, height: 24, borderRadius: 12, background: dark ? t.accent : t.borderStrong, position: 'relative', cursor: 'pointer' }}>
+11756:             <div style={{ width: 18, height: 18, borderRadius: 9, background: '#fff', position: 'absolute', top: 3, left: dark ? 23 : 3, transition: 'all 0.2s' }} />
+11757:           </button>
+11758:         </div>
+11759:       </div>
+11760:     </div>
+11761:   );
+11762: }
+11763: 
+11764: // ============================================================================
+11765: // AI SIDEBAR + NOTIFICATIONS + SEARCH
+11766: // ============================================================================
+11767: function buildContext(context, clients, leads, opps, agencies) {
+11768:   if (!context) return null;
+11769:   if (context.type === 'client') {
+11770:     const c = clients.find(x => x.id === context.id); if (!c) return null;
+11771:     const co = opps.filter(o => o.client_id === c.id);
