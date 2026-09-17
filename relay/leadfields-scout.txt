@@ -1,0 +1,11 @@
+=== lead field names in use ===
+3620:    if (plans.some(pl => pl.agency_id === newAgency)) { alert('Plan already exists for that agency'); return; }
+3630:  const removePlan = async (pl) => { if (!confirm('Delete BD plan for ' + agencyName(pl.agency_id) + '?')) return; try { await db.bdPlans.remove(pl.id); if (open === pl.id) setOpen(null); load(); } catch (e) { alert('Delete failed'); } };
+3636:          {agencies.filter(a => !plans.some(pl => pl.agency_id === a.id)).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+3643:        const cnt = tpCounts[pl.agency_id] || 0;
+3651:                <span style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{agencyName(pl.agency_id)}</span>
+4519:      {modal && <AgencyModal t={t} agency={modal.agency} onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh.agencies(); }} />}
+
+=== list-view row render (find the list branch) ===
+2850:            <button onClick={() => setView('list')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: view === 'list' ? t.accent : 'transparent', color: view === 'list' ? '#0A0B0E' : t.textSec, cursor: 'pointer' }}>List</button>
+2852:          {view === 'list' && (<><select value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 12, cursor: 'pointer' }}><option value="">Select campaign...</option>{campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><button onClick={pushToSuccessAI} disabled={pushing || bulkSelected.length === 0} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, background: t.purple, color: '#fff', fontSize: 12, fontWeight: 500, cursor: bulkSelected.length === 0 ? 'not-allowed' : 'pointer', opacity: (pushing || bulkSelected.length === 0) ? 0.5 : 1 }}>{pushing ? 'Pushing...' : `Push to Success.ai (${bulkSelected.length})`}</button></>)}
