@@ -1,0 +1,121 @@
+=== leads view + SAM data ===
+84:  { id: 'market', name: 'Market Research', short: 'MR', icon: Target, color: '#60A5FA', description: 'Finds opportunities on SAM.gov, FPDS, USASpending. Scores bids 1–10.' },
+179:    list: async () => { const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+180:    create: async (row) => { const { data, error } = await supabase.from('leads').insert(row).select().single(); if (error) throw error; return data; },
+181:    update: async (id, patch) => { const { data, error } = await supabase.from('leads').update(patch).eq('id', id).select().single(); if (error) throw error; return data; },
+182:    remove: async (id) => { const { error } = await supabase.from('leads').delete().eq('id', id); if (error) throw error; },
+675:    'SAM.gov and SubNet opportunities flow in automatically via the daily cron — no manual entry needed for those.',
+718:    'Five tabs: My Prospects, Lusha Search, SAM.gov Search, Nationwide Seeder, and Coverage.',
+1455:            <label style={label}>SAM.gov Registered?</label>
+1463:            <div><label style={label}>UEI Number (if you have one)</label><input value={form.uei} onChange={e => setForm({...form, uei: e.target.value})} placeholder="12-character SAM.gov ID" style={input} /></div>
+2051:  const SUB_SOURCES = ['SubNet', 'SAM.gov', 'FPDS', 'Agency Direct', 'Prime Direct', 'LinkedIn', 'PTAC', 'Other'];
+2074:        <p style={{ fontSize: 12, color: t.textSec, margin: 0 }}>Subcontracting opportunities from SubNet, SAM.gov, primes, and other sources.</p>
+2081:          <p style={{ fontSize: 11, color: t.textTer, marginTop: 4 }}>Add opportunities from SubNet, SAM.gov, or direct prime outreach.</p>
+2122:  const SUB_SOURCES = ['SubNet', 'SAM.gov', 'FPDS', 'Agency Direct', 'Prime Direct', 'LinkedIn', 'PTAC', 'Other'];
+2771:function LeadsView({ t, leads, setLeads, navigate, refresh }) {
+4007:        <Row t={t} label="SAM.gov Expiration" value={fmtDate(c.sam_expires)} />
+4314:      { l: 'SAM.gov registration complete', d: !!client.uei }, { l: 'CAGE code assigned', d: !!client.cage },
+4803:            <option value="all">All sources</option><option value="sam">SAM.gov</option><option value="subnet">SubNet</option><option value="demo">Demo data</option>
+7402:    if (!s.sam_registered) f.push({ level: 'high', text: 'SAM.gov not confirmed — verify active registration and check exclusions (debarment) before committing.' });
+7441:              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: t.textSec, cursor: 'pointer' }}><input type="checkbox" checked={form.sam_registered} onChange={e => setForm({ ...form, sam_registered: e.target.checked })} /> SAM.gov confirmed</label>
+10048:      alert('No email on file for ' + (p?.company_name || 'this prospect') + '.\n\nSAM.gov does not publish contact emails. Add one via the prospect drawer (Edit), or use Copy to send manually.');
+
+=== LeadsView verbatim (first 90) ===
+2771: function LeadsView({ t, leads, setLeads, navigate, refresh }) {
+2772:   const [view, setView] = useState('kanban');
+2773:   const [modal, setModal] = useState(false);
+2774:   const [intakeModal, setIntakeModal] = useState(false);
+2775:   const [drag, setDrag] = useState(null);
+2776: 
+2777:   const [outcomeModal, setOutcomeModal] = useState(null);
+2778: 
+2779:   const [campaigns, setCampaigns] = useState([]);
+2780:   const [selectedCampaign, setSelectedCampaign] = useState('');
+2781:   const [bulkSelected, setBulkSelected] = useState([]);
+2782:   const [pushing, setPushing] = useState(false);
+2783:   useEffect(() => { fetch('/.netlify/functions/successai?action=campaigns').then(r => r.json()).then(d => { if (d && Array.isArray(d.data)) setCampaigns(d.data); }).catch(() => {}); }, []);
+2784:   const toggleBulk = (id) => setBulkSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+2785:   const toggleAllBulk = () => setBulkSelected(prev => prev.length === leads.length ? [] : leads.map(l => l.id));
+2786:   const pushToSuccessAI = async () => {
+2787:     if (!selectedCampaign) { alert('Pick a campaign first.'); return; }
+2788:     const chosen = leads.filter(l => bulkSelected.includes(l.id));
+2789:     if (chosen.length === 0) { alert('Select at least one lead.'); return; }
+2790:     const skipped = chosen.filter(l => !l.contact_email);
+2791:     const valid = chosen.filter(l => l.contact_email);
+2792:     if (valid.length === 0) { alert('None of the selected leads have an email. Add a contact email before pushing.'); return; }
+2793:     const contacts = valid.map(l => {
+2794:       const parts = (l.contact_name || '').trim().split(/\s+/);
+2795:       return { email: l.contact_email, firstName: parts[0] || '', lastName: parts.slice(1).join(' ') || '', companyName: l.name || '', location: l.location || '', website: l.website || '', customVariables: { title: l.contact_title || '', industry: l.industry || '', source: l.source || '' } };
+2796:     });
+2797:     setPushing(true);
+2798:     try {
+2799:       const res = await fetch('/.netlify/functions/successai?action=add_contacts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ campaignId: selectedCampaign, contacts }) });
+2800:       const d = await res.json();
+2801:       if (!res.ok || d.success === false) { alert('Push failed: ' + (d.message || (d.errors && d.errors.message) || 'unknown error')); return; }
+2802:       const stats = d.data || {};
+2803:       let msg = 'Pushed ' + (stats.contactsUploaded != null ? stats.contactsUploaded : valid.length) + ' contact(s) to Success.ai.';
+2804:       if (stats.duplicateEmailCount) msg += '\nDuplicates skipped: ' + stats.duplicateEmailCount;
+2805:       if (stats.invalidEmailCount) msg += '\nInvalid emails: ' + stats.invalidEmailCount;
+2806:       if (skipped.length) msg += '\n\n' + skipped.length + ' lead(s) skipped (no email): ' + skipped.map(l => l.name).join(', ');
+2807:       if (stats.remainingInPlan != null) msg += '\n\nRemaining in plan: ' + stats.remainingInPlan;
+2808:       alert(msg);
+2809:       setBulkSelected([]);
+2810:     } catch (e) { alert('Push failed: ' + e.message); }
+2811:     finally { setPushing(false); }
+2812:   };
+2813: 
+2814:   const moveStage = async (leadId, newStage) => {
+2815:     const lead = leads.find(l => l.id === leadId);
+2816:     if (newStage === 'Closed Won' || newStage === 'Closed Lost') {
+2817:       setOutcomeModal({ lead, newStage });
+2818:       return;
+2819:     }
+2820:     setLeads(leads.map(l => l.id === leadId ? { ...l, stage: newStage } : l));
+2821:     try {
+2822:       await db.leads.update(leadId, { stage: newStage });
+2823:       if (lead) writeMemory({ entity_type: 'lead', entity_id: leadId, entity_name: lead.name, memory_type: 'stage_change', content: `Lead "${lead.name}" moved from "${lead.stage}" to "${newStage}". Industry: ${lead.industry || 'unknown'}. Source: ${lead.source || 'unknown'}. Estimated revenue: $${lead.estimated_revenue || 0}.`, source: 'crm_action' });
+2824:     }
+2825:     catch (e) { refresh.leads(); alert('Failed to update stage'); }
+2826:   };
+2827: 
+2828:   const commitOutcome = async (reason) => {
+2829:     const { lead, newStage } = outcomeModal;
+2830:     setOutcomeModal(null);
+2831:     setLeads(leads.map(l => l.id === lead.id ? { ...l, stage: newStage } : l));
+2832:     try {
+2833:       await db.leads.update(lead.id, { stage: newStage });
+2834:       writeMemory({ entity_type: 'lead', entity_id: lead.id, entity_name: lead.name, memory_type: 'stage_change', content: `Lead "${lead.name}" moved from "${lead.stage}" to "${newStage}". Industry: ${lead.industry || 'unknown'}. Source: ${lead.source || 'unknown'}. Estimated revenue: $${lead.estimated_revenue || 0}.`, source: 'crm_action' });
+2835:       if (reason) writeMemory({ entity_type: 'lead', entity_id: lead.id, entity_name: lead.name, memory_type: newStage === 'Closed Won' ? 'outcome_won' : 'outcome_lost', content: `OUTCOME: Lead "${lead.name}" ${newStage === 'Closed Won' ? 'WON' : 'LOST'}. Reason: ${reason}. Profile — Industry: ${lead.industry || 'unknown'}, Source: ${lead.source || 'unknown'}, Est revenue: $${lead.estimated_revenue || 0}, State: ${lead.state || 'unknown'}.`, source: 'outcome_feedback' });
+2836:     }
+2837:     catch (e) { refresh.leads(); alert('Failed to update stage'); }
+2838:   };
+2839: 
+2840:   return (
+2841:     <div className="fade-in" style={{ padding: 32 }}>
+2842:       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+2843:         <div>
+2844:           <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>Leads</h1>
+2845:           <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>{leads.length} prospects · {leads.filter(l => !['Closed Won','Closed Lost'].includes(l.stage)).length} active</p>
+2846:         </div>
+2847:         <div style={{ display: 'flex', gap: 8 }}>
+2848:           <div style={{ display: 'flex', background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, padding: 3 }}>
+2849:             <button onClick={() => setView('kanban')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: view === 'kanban' ? t.accent : 'transparent', color: view === 'kanban' ? '#0A0B0E' : t.textSec, cursor: 'pointer' }}>Kanban</button>
+2850:             <button onClick={() => setView('list')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: view === 'list' ? t.accent : 'transparent', color: view === 'list' ? '#0A0B0E' : t.textSec, cursor: 'pointer' }}>List</button>
+2851:           </div>
+2852:           {view === 'list' && (<><select value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 12, cursor: 'pointer' }}><option value="">Select campaign...</option>{campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><button onClick={pushToSuccessAI} disabled={pushing || bulkSelected.length === 0} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, background: t.purple, color: '#fff', fontSize: 12, fontWeight: 500, cursor: bulkSelected.length === 0 ? 'not-allowed' : 'pointer', opacity: (pushing || bulkSelected.length === 0) ? 0.5 : 1 }}>{pushing ? 'Pushing...' : `Push to Success.ai (${bulkSelected.length})`}</button></>)}
+2853:           <button onClick={() => setIntakeModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, border: `1px solid ${t.border}`, color: t.textSec, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><Send size={13} /> Send Intake Form</button>
+2854:           <button onClick={() => setModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><Plus size={14} /> New Lead</button>
+2855:           {intakeModal && <SendIntakeModal t={t} onClose={() => setIntakeModal(false)} />}
+2856:         </div>
+2857:       </div>
+2858: 
+2859:       {leads.length === 0 ? (
+2860:         <div style={{ textAlign: 'center', padding: 80, color: t.textTer }}>
+2861:           <Sprout size={40} style={{ margin: '0 auto 16px', opacity: 0.4 }} />
+
+=== existing CSV export anywhere ===
+5825:      const blob = await Packer.toBlob(doc);
+6284:      const blob = await Packer.toBlob(doc);
+6350:      const blob = await Packer.toBlob(doc);
+6662:  const blob = await Packer.toBlob(doc);
+7305:      const blob = await Packer.toBlob(doc);
