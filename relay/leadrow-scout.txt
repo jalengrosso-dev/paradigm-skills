@@ -1,0 +1,101 @@
+=== LeadListRow / list table render ===
+2784:  const toggleBulk = (id) => setBulkSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+2788:    const chosen = leads.filter(l => bulkSelected.includes(l.id));
+2900:              <div onClick={e => e.stopPropagation()}><input type="checkbox" checked={bulkSelected.includes(l.id)} onChange={() => toggleBulk(l.id)} style={{ cursor: 'pointer' }} /></div>
+11047:  const toggleBulk = (id) => setBulkSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+11071:            const emails = sortedFiltered.filter(a => bulkSelected.includes(a.id) && a.email).map(a => a.email);
+11093:            const isChecked = bulkSelected.includes(agent.id);
+11096:                <td style={{ padding: '8px 6px' }}><input type="checkbox" checked={isChecked} onChange={() => toggleBulk(agent.id)} onClick={e => e.stopPropagation()} /></td>
+
+=== list branch render verbatim (2900-2990) ===
+              <div onClick={e => e.stopPropagation()}><input type="checkbox" checked={bulkSelected.includes(l.id)} onChange={() => toggleBulk(l.id)} style={{ cursor: 'pointer' }} /></div>
+              <div style={{ fontSize: 13, color: t.text, fontWeight: 500 }}>{l.name}</div>
+              <div style={{ fontSize: 12, color: t.textSec }}>{l.contact_name || '—'}</div>
+              <div style={{ fontSize: 12, color: t.textSec }}>{l.industry || '—'}</div>
+              <div style={{ fontSize: 12, color: t.textSec }}>{l.source || '—'}</div>
+              <div><span style={{ padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 500, background: `${LEAD_STAGE_COLORS[l.stage]}20`, color: LEAD_STAGE_COLORS[l.stage] }}>{l.stage}</span></div>
+              <div className="mono" style={{ fontSize: 12, color: t.text, textAlign: 'right' }}>{fmtCurShort(l.estimated_revenue)}</div>
+            </button>
+          ))}
+        </div>
+      )}
+      {outcomeModal && <OutcomeReasonModal t={t} lead={outcomeModal.lead} newStage={outcomeModal.newStage} onCommit={commitOutcome} onCancel={() => setOutcomeModal(null)} />}
+      {modal && <LeadModal t={t} onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh.leads(); }} />}
+    </div>
+  );
+}
+
+function LeadDetail({ t, id, leads, navigate, openAgent, refresh, setClients }) {
+  const [editing, setEditing] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const l = leads.find(x => x.id === id);
+  if (!l) return <div style={{ padding: 32 }}>Lead not found.</div>;
+
+  const remove = async () => {
+    if (!confirm(`Delete lead "${l.name}"? This cannot be undone.`)) return;
+    try { await db.leads.remove(l.id); refresh.leads(); navigate('leads'); }
+    catch (e) { alert(`Failed: ${e.message}`); }
+  };
+
+  const convertToClient = async () => {
+    if (!confirm(`Convert "${l.name}" to a client? This creates a new client record and marks the lead as Closed Won.`)) return;
+    setConverting(true);
+    try {
+      const daysToConvert = l.created_at ? Math.round((Date.now() - new Date(l.created_at).getTime()) / 86400000) : null;
+      const clientRow = {
+        name: l.name,
+        industry: l.industry || 'Construction',
+        location: l.location || '',
+        website: l.website || '',
+        revenue: Number(l.estimated_revenue || 0),
+        phase: 1,
+        health: 60,
+        onboarding: { completed: 0, total: 18 },
+        certifications: [],
+        naics: [],
+        psc: [],
+        agreement: { monthlyRetainer: 0, defaultCommission: 5, term: 12, startDate: new Date().toISOString().split('T')[0] },
+        equity: { percentage: 0, vested: 0, vestingMilestones: [] },
+        conversion_source: l.original_source || l.source || 'unknown',
+        converted_from_lead_id: l.id,
+        days_to_convert: daysToConvert,
+      };
+      const newClient = await db.clients.create(clientRow);
+      if (l.contact_name) {
+        await db.pocs.create({ client_id: newClient.id, name: l.contact_name, title: l.contact_title || '', role: 'Owner', email: l.contact_email || '', phone: l.contact_phone || '', is_primary: true, notes: `Converted from lead. Source: ${l.source || 'unknown'}` });
+      }
+      await db.leads.update(l.id, { stage: 'Closed Won' });
+      setClients(await db.clients.list());
+      await refresh.leads();
+      writeMemory({ entity_type: "client", entity_id: newClient.id, entity_name: l.name, memory_type: "client_created", content: "New client " + l.name + " converted from lead. Industry: " + (l.industry || "unknown") + ". Source: " + (l.source || "unknown") + ". Estimated revenue: $" + (l.estimated_revenue || 0) + ". Contact: " + (l.contact_name || "none") + ". Phase 1 Foundation. Needs SAM registration, capability statement, NAICS confirmation, and certification assessment.", source: "lead_conversion" });
+      alert(`Success! "${l.name}" is now a client. Navigating to their record.`);
+      navigate('client-detail', newClient.id);
+    } catch (e) { alert(`Conversion failed: ${e.message}`); }
+    finally { setConverting(false); }
+  };
+
+  return (
+    <div className="fade-in" style={{ padding: 32, maxWidth: 1200, margin: '0 auto' }}>
+      <button onClick={() => navigate('leads')} style={{ display: 'flex', alignItems: 'center', gap: 6, color: t.textTer, fontSize: 12, marginBottom: 16, cursor: 'pointer' }}><ChevronLeft size={14} /> Back to Leads</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <span style={{ padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 500, background: `${LEAD_STAGE_COLORS[l.stage]}20`, color: LEAD_STAGE_COLORS[l.stage] }}>{l.stage}</span>
+            {l.source && <span style={{ padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 500, background: t.bgSubtle, color: t.textSec }}>{l.source}</span>}
+            {l.industry && <span style={{ padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 500, background: t.accentDim, color: t.accent }}>{l.industry}</span>}
+          </div>
+          <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>{l.name}</h1>
+          <div style={{ marginTop: 12, display: 'flex', gap: 16, color: t.textSec, fontSize: 13, flexWrap: 'wrap' }}>
+            {l.location && <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={13} /> {l.location}</span>}
+            {l.website && <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Globe size={13} /> {l.website}</span>}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Clock size={13} /> Added {fmtDate(l.created_at)}</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => setEditing(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 8, background: t.surface, color: t.text, border: `1px solid ${t.border}`, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><Edit3 size={13} /> Edit</button>
+          <button onClick={remove} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 8, background: `${t.danger}15`, color: t.danger, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><Trash2 size={13} /> Delete</button>
+          {l.stage !== 'Closed Won' && (
+            <button onClick={convertToClient} disabled={converting} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 8, background: t.success, color: '#0A0B0E', fontSize: 12, fontWeight: 600, cursor: converting ? 'wait' : 'pointer', opacity: converting ? 0.6 : 1 }}>
+              <ArrowRight size={14} /> {converting ? 'Converting…' : 'Convert to Client'}
+            </button>
+          )}
