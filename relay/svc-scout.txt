@@ -1,0 +1,42 @@
+=== service role key usage in functions ===
+netlify/functions/ingest-opportunities-background.js:33:const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+netlify/functions/ingest-opportunities-background.js:136:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+netlify/functions/send-email.js:4:const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+netlify/functions/send-email.js:60:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+netlify/functions/search-memories.js:10:    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+netlify/functions/weekly-briefing-background.js:4:    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+netlify/functions/extract-requirements.js:46:    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+netlify/functions/ingest-subnet.js:12:const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+netlify/functions/ingest-subnet.js:108:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+netlify/functions/library-promote-wins.js:14:    const KEY = process.env.SUPABASE_SERVICE_KEY;
+
+=== how existing functions init supabase ===
+netlify/functions/ingest-opportunities-background.js:6:import { createClient } from '@supabase/supabase-js';
+netlify/functions/ingest-opportunities-background.js:136:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+netlify/functions/send-email.js:1:import { createClient } from '@supabase/supabase-js';
+netlify/functions/send-email.js:60:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+netlify/functions/ingest-subnet.js:6:import { createClient } from '@supabase/supabase-js';
+netlify/functions/ingest-subnet.js:108:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+netlify/functions/score-opportunity.js:5:import { createClient } from '@supabase/supabase-js';
+netlify/functions/score-opportunity.js:102:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+netlify/functions/cleanup-demo.js:1:import { createClient } from '@supabase/supabase-js';
+netlify/functions/cleanup-demo.js:7:    const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+=== env vars referenced in functions ===
+process.env.ANTHROPIC_API_KEY
+process.env.ANTHROPIC_BASE_URL
+process.env.APOLLO_API_KEY
+process.env.DEBUG_ENV_CHECK
+process.env.NETLIFY
+process.env.NETLIFY_DEV
+process.env.OPENAI_API_KEY
+process.env.RESEND_API_KEY
+process.env.SAM_API_KEY
+process.env.SAM_GOV_API_KEY
+process.env.SIGNWELL_API_KEY
+process.env.SUBNET_LIVE_ENABLED
+process.env.SUCCESSAI_API_KEY
+process.env.SUPABASE_SERVICE_KEY
+process.env.SUPABASE_URL
+process.env.URL
+process.env.VITE_SUPABASE_URL
