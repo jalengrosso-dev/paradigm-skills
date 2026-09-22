@@ -1,0 +1,7 @@
+=== proposals list render ===
+--- direct grep ---
+3392:          {proposals.length > 0 && <div style={{ marginBottom: 12 }}><label style={labelStyle}>Related proposal (optional)</label><select value={f.proposal_id} onChange={e => setF({ ...f, proposal_id: e.target.value })} style={inputStyle}><option value="">— none —</option>{proposals.map(pp => <option key={pp.id} value={pp.id}>{pp.title}</option>)}</select><div style={{ fontSize: 11, color: t.textTer, marginTop: 6 }}>Link this meeting to a proposal so its notes reach drafting.</div></div>}
+6596:          <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>{proposals.length} proposals</p>
+6601:      {proposals.length === 0 ? (
+6608:          {proposals.map(p => {
+12064:    ...proposals.filter(p => p.title?.toLowerCase().includes(ql)).map(p => ({ type: 'Proposal', icon: PenTool, color: '#4ADE80', label: p.title, sub: p.status, onClick: () => { navigate('proposals'); onClose(); } })),
