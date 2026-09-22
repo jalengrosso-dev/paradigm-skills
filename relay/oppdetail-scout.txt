@@ -1,0 +1,17 @@
+=== opportunity-detail route + component ===
+560:    if (v === 'opportunity-detail') setSelected(s => ({ ...s, opp: id }));
+610:          {view === 'opportunity-detail' && selected.opp && <OppDetail {...{ t, id: selected.opp, opps, clients, agencies, navigate, openAgent, scores, refresh }} />}
+748:const HELP_VIEW_MAP = { 'client-detail': 'clients', 'lead-detail': 'leads', 'agency-detail': 'agencies', 'opportunity-detail': 'opportunities' };
+1592:  const DETAIL_MAP = { 'client-detail': 'clients', 'lead-detail': 'leads', 'agency-detail': 'agencies', 'opportunity-detail': 'opportunities' };
+1613:            const active = view === item.id || (view === 'client-detail' && item.id === 'clients') || (view === 'lead-detail' && item.id === 'leads') || (view === 'agency-detail' && item.id === 'agencies') || (view === 'opportunity-detail' && item.id === 'opportunities');
+2355:                <button key={opp.id} onClick={() => navigate('opportunity-detail', opp.id)} style={{ textAlign: 'left', padding: 12, borderRadius: 8, background: t.surface, border: `1px solid ${t.border}`, cursor: 'pointer' }}>
+4292:    <button onClick={() => navigate('opportunity-detail', o.id)} style={{ background: t.surface, borderRadius: 10, padding: 16, border: `1px solid ${t.border}`, textAlign: 'left', cursor: 'pointer' }}>
+4885:            <button onClick={() => navigate('opportunity-detail', selected.id)} style={{ padding: '8px 12px', borderRadius: 6, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 500, border: 'none', cursor: 'pointer', textAlign: 'left' }}>Open full opportunity →</button>
+5018:                    <div key={o.id} draggable onDragStart={() => setDrag(o.id)} onClick={() => navigate('opportunity-detail', o.id)} style={{ background: t.surface, borderRadius: 10, padding: 12, marginBottom: 8, cursor: 'pointer', border: `1px solid ${t.border}` }}>
+5047:              <button key={o.id} onClick={() => navigate('opportunity-detail', o.id)} style={{ width: '100%', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px 80px', padding: '14px 20px', borderBottom: i < filteredOpps.length - 1 ? `1px solid ${t.borderSubtle}` : 'none', textAlign: 'left', alignItems: 'center', minWidth: 900, cursor: 'pointer' }}>
+5450:function OppDetail({ t, id, opps, clients, agencies, navigate, openAgent, scores, refresh }) {
+5466:  if (!o) return <div style={{ padding: 32 }}>Opportunity not found.</div>;
+12113:    ...opps.filter(o => o.title.toLowerCase().includes(ql) || o.solicitation_number?.toLowerCase().includes(ql)).map(o => ({ type: 'Opportunity', icon: Briefcase, color: t.accent, label: o.title, sub: `${o.solicitation_number} · ${o.stage}`, onClick: () => { navigate('opportunity-detail', o.id); onClose(); } })),
+
+=== OppDetail top (find the lookup) ===
+5450:function OppDetail({ t, id, opps, clients, agencies, navigate, openAgent, scores, refresh }) {
