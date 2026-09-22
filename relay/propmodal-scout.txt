@@ -1,0 +1,12 @@
+=== New Proposal modal opportunity dropdown ===
+3473:            <div><div style={{ fontSize: 11, color: t.textSec, marginBottom: 3 }}>Opportunity (optional)</div><select value={form.opportunity_id} onChange={e => setForm({ ...form, opportunity_id: e.target.value })} style={{ ...inputStyle(t), width: '100%', fontSize: 12 }}><option value="">Client-level (no specific opp)</option>{clientOpps.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</select></div>
+6534:        {bdPanel && <BreakdownPanel t={t} proposal={selected} opp={opps.find(o => o.id === selected.opportunity_id)} sections={sections} onClose={() => setBdPanel(false)} onSaved={(p) => { setSelected(p); refresh.proposals(); }} onSectionsApplied={async () => { try { setSections(await db.sections.listByProposal(selected.id)); } catch(e) {} }} />}
+9110:function ProposalModal({ t, clients, opps, onClose, onSaved }) {
+9152:          <option value="">Select opportunity...</option>
+9520:          <option value="">Select opportunity...</option>
+10926:          <option value="">Select opportunity...</option>
+
+=== modal opp select render context ===
+9152:          <option value="">Select opportunity...</option>
+9520:          <option value="">Select opportunity...</option>
+10926:          <option value="">Select opportunity...</option>
