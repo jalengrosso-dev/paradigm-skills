@@ -1,0 +1,50 @@
+4905: function OppsView({ t, opps, setOpps, clients, agencies, navigate, refresh, scores, openAgent }) {
+4906:   const [view, setView] = useState('kanban');
+4907:   const [drag, setDrag] = useState(null);
+4908:   const [modal, setModal] = useState(false);
+4909:   const [ntFilter, setNtFilter] = useState('all');
+4910:   const [typeFilter, setTypeFilter] = useState('all');
+4911:   const [oppSearch, setOppSearch] = useState('');
+4912:   const pickGroup = (k) => { setNtFilter(k); setTypeFilter('all'); };
+---MASTER RENDER---
+5005:                         <span className="mono" style={{ fontSize: 10, color: t.text, fontWeight: 500 }}>{fmtCurShort(o.estimated_value)}</span>
+5006:                         {days > 0 && !['Won','Lost'].includes(o.stage) && <span className="mono" style={{ fontSize: 10, color: days <= 7 ? t.danger : t.textTer }}>{days}d</span>}
+5007:                       </div>
+5008:                     </div>
+5009:                   );
+5010:                 })}
+5011:               </div>
+5012:             );
+5013:           })}
+5014:         </div>
+5015:       ) : (
+5016:         <div style={{ background: t.surface, borderRadius: 12, border: `1px solid ${t.border}`, overflow: 'auto' }}>
+5017:           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px 80px', padding: '12px 20px', borderBottom: `1px solid ${t.border}`, background: t.bgSubtle, fontSize: 10, color: t.textTer, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, minWidth: 900 }}>
+5018:             <div>Opportunity</div><div>Client</div><div>Agency</div><div>Stage</div><div style={{ textAlign: 'right' }}>Value</div><div style={{ textAlign: 'right' }}>Due</div>
+5019:           </div>
+5020:           {filteredOpps.map((o, i) => {
+5021:             const cl = clients.find(c => c.id === o.client_id);
+5022:             const ag = agencies.find(a => a.id === o.agency_id);
+5023:             const days = daysUntil(o.due_date);
+5024:             return (
+5025:               <button key={o.id} onClick={() => navigate('opportunity-detail', o.id)} style={{ width: '100%', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px 80px', padding: '14px 20px', borderBottom: i < filteredOpps.length - 1 ? `1px solid ${t.borderSubtle}` : 'none', textAlign: 'left', alignItems: 'center', minWidth: 900, cursor: 'pointer' }}>
+5026:                 <div><div style={{ fontSize: 13, color: t.text, fontWeight: 500, marginBottom: 2 }}>{o.title}</div><div className="mono" style={{ fontSize: 10, color: t.textTer }}>{o.solicitation_number}</div></div>
+5027:                 <div style={{ fontSize: 12, color: t.textSec }}>{cl?.name}</div>
+5028:                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 4, height: 4, borderRadius: 2, background: ag?.color }} /><span style={{ fontSize: 12, color: t.textSec }}>{ag?.abbrev}</span></div>
+5029:                 <div><span style={{ padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 500, background: `${STAGE_COLORS[o.stage]}20`, color: STAGE_COLORS[o.stage] }}>{o.stage}</span></div>
+5030:                 <div className="mono" style={{ fontSize: 12, color: t.text, textAlign: 'right', fontWeight: 500 }}>{fmtCurShort(o.estimated_value)}</div>
+5031:                 <div className="mono" style={{ fontSize: 12, color: days <= 7 ? t.danger : t.textSec, textAlign: 'right' }}>{['Won','Lost'].includes(o.stage) ? '—' : `${days}d`}</div>
+5032:               </button>
+5033:             );
+5034:           })}
+5035:         </div>
+5036:       )}
+5037:       {modal && <OppModal t={t} clients={clients} agencies={agencies} onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh.opps(); }} />}
+5038:     </div>
+5039:   );
+5040: }
+5041: 
+5042: function OppModal({ t, clients, agencies, existing, onClose, onSaved }) {
+5043:   const [form, setForm] = useState(existing || {
+5044:     title: '', solicitation_number: '', client_id: '', agency_id: '',
+5045:     naics: '', set_aside: '', stage: 'Identified', estimated_value: 0,
