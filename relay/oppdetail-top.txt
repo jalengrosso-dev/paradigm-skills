@@ -1,0 +1,21 @@
+5450: function OppDetail({ t, id, opps, clients, agencies, navigate, openAgent, scores, refresh }) {
+5451:   const [scoringClId, setScoringClId] = useState(null);
+5452:   const [addClId, setAddClId] = useState('');
+5453:   const oppScores = (scores || []).filter(s => s.opportunity_id === id).sort((a,b) => b.score - a.score);
+5454:   const scoreClient = async (clientId) => {
+5455:     setScoringClId(clientId);
+5456:     try {
+5457:       const res = await fetch('/.netlify/functions/score-opportunity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opportunity_id: id, client_id: clientId }) });
+5458:       const data = await res.json();
+5459:       if (data.error) alert('Scoring failed: ' + data.error);
+5460:       else if (refresh?.scores) await refresh.scores();
+5461:     } catch (e) { alert('Network error: ' + e.message); }
+5462:     finally { setScoringClId(null); setAddClId(''); }
+5463:   };
+5464:   const recColor = (rec) => rec === 'Pursue' ? t.success : rec === 'Assess' ? t.warning : t.textTer;
+5465:   const o = opps.find(x => x.id === id);
+5466:   if (!o) return <div style={{ padding: 32 }}>Opportunity not found.</div>;
+5467:   const cl = clients.find(c => c.id === o.client_id);
+5468:   const ag = agencies.find(a => a.id === o.agency_id);
+5469:   const days = daysUntil(o.due_date);
+5470:   const ps = o.proposal_sections || { technical: 0, management: 0, pastPerf: 0, price: 0 };
