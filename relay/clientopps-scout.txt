@@ -1,0 +1,22 @@
+=== ClientDetail opps filter usage ===
+3153:            const co = opps.filter(o => o.client_id === c.id && !['Won','Lost'].includes(o.stage));
+3728:  const co = opps.filter(o => o.client_id === id);
+4081:    const poc = (contacts || []).find(x => x.client_id === c.id);
+4879:                {clients.filter(c => !selected.oppScores.find(s => s.client_id === c.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+5577:                  {clients.filter(c => !oppScores.find(s => s.client_id === c.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+11880:    const co = opps.filter(o => o.client_id === c.id);
+
+=== ClientDetail signature + the opps tab render ===
+  const co = opps.filter(o => o.client_id === id);
+  const cc = contacts.filter(x => x.linked_clients?.includes(id));
+  const cd = docs.filter(d => d.client_id === id);
+
+  useEffect(() => {
+    if (!id) return;
+    setPocsLoading(true);
+    db.pocs.listByClient(id).then(setPocs).finally(() => setPocsLoading(false));
+  }, [id]);
+
+  const reloadPocs = async () => setPocs(await db.pocs.listByClient(id));
+
+  const [inviteOpen, setInviteOpen] = useState(false);
