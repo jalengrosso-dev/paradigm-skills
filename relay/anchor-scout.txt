@@ -1,0 +1,34 @@
+=== proposals header+list 6590-6615 ===
+6590: 
+6591:   return (
+6592:     <div className="fade-in" style={{ padding: 32, maxWidth: 1400, margin: '0 auto' }}>
+6593:       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+6594:         <div>
+6595:           <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>Proposals</h1>
+6596:           <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>{proposals.length} proposals</p>
+6597:         </div>
+6598:         <button onClick={() => setModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}><Plus size={15} /> New Proposal</button>
+6599:       </div>
+6600:       <ArchiveSearchPanel t={t} />
+6601:       {proposals.length === 0 ? (
+6602:         <div style={{ background: t.surface, borderRadius: 12, border: '1px solid ' + t.border, textAlign: 'center', padding: 60, color: t.textTer }}>
+6603:           <PenTool size={32} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+6604:           <p style={{ fontSize: 13, margin: 0 }}>No proposals yet. Click "New Proposal" to start one.</p>
+6605:         </div>
+6606:       ) : (
+6607:         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+6608:           {proposals.map(p => {
+6609:             const c = clients.find(x => x.id === p.client_id);
+6610:             const o = opps.find(x => x.id === p.opportunity_id);
+6611:             return (
+6612:               <div key={p.id} onClick={() => loadSections(p)} style={{ background: t.surface, borderRadius: 12, border: '1px solid ' + t.border, padding: 18, cursor: 'pointer' }}>
+6613:                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+6614:                   <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{p.title}</div>
+6615:                   <button onClick={e => { e.stopPropagation(); removeProposal(p); }} style={{ padding: 4, color: t.textTer, cursor: 'pointer', borderRadius: 4, flexShrink: 0 }}><Trash2 size={13} /></button>
+
+=== opps master/kanban list usage of filteredOpps ===
+4912:  const filteredOpps = opps.filter(o => {
+4967:        <OppsAIPipelineView t={t} opps={filteredOpps} scores={scores} clients={clients} agencies={agencies} navigate={navigate} openAgent={openAgent} refresh={refresh} />
+4971:            const sopps = filteredOpps.filter(o => o.stage === stage);
+5008:          {filteredOpps.map((o, i) => {
+5013:              <button key={o.id} onClick={() => navigate('opportunity-detail', o.id)} style={{ width: '100%', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px 80px', padding: '14px 20px', borderBottom: i < filteredOpps.length - 1 ? `1px solid ${t.borderSubtle}` : 'none', textAlign: 'left', alignItems: 'center', minWidth: 900, cursor: 'pointer' }}>
