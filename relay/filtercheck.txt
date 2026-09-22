@@ -1,0 +1,19 @@
+4912:   const pickGroup = (k) => { setNtFilter(k); setTypeFilter('all'); };
+4913:   const oppSearchLc = oppSearch.trim().toLowerCase();
+4914:   const filteredOpps = opps.filter(o => {
+4915:     if (ntFilter !== 'all' && noticeGroupOf(o.notice_type) !== ntFilter) return false;
+4916:     if (typeFilter !== 'all' && o.notice_type !== typeFilter) return false;
+4917:     if (oppSearchLc) {
+4918:       const cname = (clients.find(c => c.id === o.client_id) || {}).name || '';
+4919:       const hay = ((o.title || '') + ' ' + (o.solicitation_number || '') + ' ' + (o.naics || '') + ' ' + (o.set_aside || '') + ' ' + (o.place_of_performance || '') + ' ' + cname).toLowerCase();
+4920:       if (!hay.includes(oppSearchLc)) return false;
+4921:     }
+4922:     return true;
+4923:   });
+4924:   const moveStage = async (oppId, newStage) => {
+4925:     const opp = opps.find(o => o.id === oppId);
+4926:     setOpps(opps.map(o => o.id === oppId ? { ...o, stage: newStage } : o));
+4927:     try {
+4928:       await db.opps.update(oppId, { stage: newStage });
+4929:       if (opp) writeMemory({ entity_type: "opportunity", entity_id: oppId, entity_name: opp.title, memory_type: "stage_change", content: "Opportunity " + opp.title + " (" + opp.solicitation_number + ") moved from " + opp.stage + " to " + newStage + ". Estimated value: $" + (opp.estimated_value || 0) + ". NAICS: " + (opp.naics || "unknown") + ". Set-aside: " + (opp.set_aside || "unknown") + ".", source: "crm_action" });
+4930:     }
