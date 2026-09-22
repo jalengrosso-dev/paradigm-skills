@@ -1,0 +1,135 @@
+=== component owning line 4912 filteredOpps ===
+4870:               </div>
+4871:               <div style={{ fontSize: 11, color: t.textSec, lineHeight: 1.5, padding: 10, background: t.bgSubtle, borderRadius: 6, borderLeft: `2px solid ${recColor(s.recommendation)}` }}>{s.reasoning}</div>
+4872:             </div>
+4873:           ))}
+4874:           <div style={{ marginTop: 16, marginBottom: 12 }}>
+4875:             <div style={{ fontSize: 10, color: t.textTer, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, marginBottom: 6 }}>Score against another client</div>
+4876:             <div style={{ display: 'flex', gap: 6 }}>
+4877:               <select value={addClientId} onChange={e => setAddClientId(e.target.value)} style={{ flex: 1, background: t.bgSubtle, border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, fontSize: 12, padding: '6px 10px', cursor: 'pointer' }}>
+4878:                 <option value="">Select client...</option>
+4879:                 {clients.filter(c => !selected.oppScores.find(s => s.client_id === c.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+4880:               </select>
+4881:               <button disabled={!addClientId || scoringClientId} onClick={() => scoreOpp(selected.id, addClientId)} style={{ padding: '6px 12px', borderRadius: 6, background: addClientId ? t.accent : t.bgSubtle, color: addClientId ? '#0A0B0E' : t.textTer, fontSize: 11, fontWeight: 500, border: 'none', cursor: addClientId ? 'pointer' : 'not-allowed' }}>{scoringClientId === addClientId ? 'Scoring...' : 'Score'}</button>
+4882:             </div>
+4883:           </div>
+4884:           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+4885:             <button onClick={() => navigate('opportunity-detail', selected.id)} style={{ padding: '8px 12px', borderRadius: 6, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 500, border: 'none', cursor: 'pointer', textAlign: 'left' }}>Open full opportunity →</button>
+4886:             <button onClick={() => openAgent && openAgent('orchestrator', { type: 'opportunity', id: selected.id, title: selected.title })} style={{ padding: '8px 12px', borderRadius: 6, background: t.surface, border: `1px solid ${t.border}`, color: t.textSec, fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>Run full agent analysis</button>
+4887:           </div>
+4888:         </div>
+4889:       )}
+4890:     </div>
+4891:   );
+4892: }
+4893: 
+4894: const NOTICE_GROUPS = {
+4895:   prerfp: { label: 'Pre-RFP', types: ['Sources Sought', 'Presolicitation', 'Special Notice'], color: '#A78BFA' },
+4896:   biddable: { label: 'Biddable', types: ['Solicitation', 'Combined Synopsis/Solicitation'], color: '#4ADE80' },
+4897:   intel: { label: 'Intel', types: ['Award Notice', 'Justification', 'Consolidate/(Substantially) Bundle'], color: '#6B7280' },
+4898: };
+4899: const noticeGroupOf = (nt) => {
+4900:   if (!nt) return null;
+4901:   for (const [k, g] of Object.entries(NOTICE_GROUPS)) if (g.types.includes(nt)) return k;
+4902:   return null;
+4903: };
+4904: 
+4905: function OppsView({ t, opps, setOpps, clients, agencies, navigate, refresh, scores, openAgent }) {
+4906:   const [view, setView] = useState('kanban');
+4907:   const [drag, setDrag] = useState(null);
+4908:   const [modal, setModal] = useState(false);
+4909:   const [ntFilter, setNtFilter] = useState('all');
+4910:   const [typeFilter, setTypeFilter] = useState('all');
+4911:   const pickGroup = (k) => { setNtFilter(k); setTypeFilter('all'); };
+4912:   const filteredOpps = opps.filter(o => {
+4913:     if (ntFilter !== 'all' && noticeGroupOf(o.notice_type) !== ntFilter) return false;
+4914:     if (typeFilter !== 'all' && o.notice_type !== typeFilter) return false;
+4915:     return true;
+4916:   });
+4917:   const moveStage = async (oppId, newStage) => {
+4918:     const opp = opps.find(o => o.id === oppId);
+4919:     setOpps(opps.map(o => o.id === oppId ? { ...o, stage: newStage } : o));
+4920:     try {
+4921:       await db.opps.update(oppId, { stage: newStage });
+4922:       if (opp) writeMemory({ entity_type: "opportunity", entity_id: oppId, entity_name: opp.title, memory_type: "stage_change", content: "Opportunity " + opp.title + " (" + opp.solicitation_number + ") moved from " + opp.stage + " to " + newStage + ". Estimated value: $" + (opp.estimated_value || 0) + ". NAICS: " + (opp.naics || "unknown") + ". Set-aside: " + (opp.set_aside || "unknown") + ".", source: "crm_action" });
+4923:     }
+4924:     catch (e) { refresh.opps(); alert('Failed to update stage'); }
+4925:   };
+4926:   return (
+4927:     <div className="fade-in" style={{ padding: 32 }}>
+4928:       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+4929:         <div>
+4930:           <h1 className="display" style={{ fontSize: 32, fontWeight: 600, margin: 0, color: t.text }}>Opportunities</h1>
+4931:           <p style={{ color: t.textSec, marginTop: 6, fontSize: 13 }}>{opps.length} bids · {fmtCurShort(opps.reduce((s, o) => s + Number(o.estimated_value || 0), 0))} pipeline</p>
+4932:         </div>
+4933:         <div style={{ display: 'flex', gap: 8 }}>
+4934:           <div style={{ display: 'flex', background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, padding: 3 }}>
+4935:             <button onClick={() => setView('kanban')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: view === 'kanban' ? t.accent : 'transparent', color: view === 'kanban' ? '#0A0B0E' : t.textSec, cursor: 'pointer' }}>Kanban</button>
+4936:             <button onClick={() => setView('master')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: view === 'master' ? t.accent : 'transparent', color: view === 'master' ? '#0A0B0E' : t.textSec, cursor: 'pointer' }}>Master</button>
+4937:             <button onClick={() => setView('aipipeline')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: view === 'aipipeline' ? t.accent : 'transparent', color: view === 'aipipeline' ? '#0A0B0E' : t.textSec, cursor: 'pointer' }}>AI Pipeline</button>
+4938:           </div>
+4939:           <button onClick={() => setModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#0A0B0E', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}><Plus size={14} /> New Opportunity</button>
+4940:         </div>
+4941:       </div>
+4942:       <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+4943:         <button onClick={() => pickGroup('all')} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, background: ntFilter === 'all' ? t.accent : t.surface, color: ntFilter === 'all' ? '#0A0B0E' : t.textSec, border: `1px solid ${t.border}`, cursor: 'pointer' }}>All ({opps.length})</button>
+4944:         {Object.entries(NOTICE_GROUPS).map(([k, g]) => {
+4945:           const n = opps.filter(o => noticeGroupOf(o.notice_type) === k).length;
+
+=== ProposalsView top (5963 + 55) ===
+5963: function ProposalsView({ t, proposals, clients, opps, refresh }) {
+5964:   const [modal, setModal] = useState(false);
+5965:   const [selected, setSelected] = useState(null);
+5966:   const [sections, setSections] = useState([]);
+5967:   const [openSection, setOpenSection] = useState(null);
+5968:   const [draftBusy, setDraftBusy] = useState(null);
+5969:   const [saveBusy, setSaveBusy] = useState(null);
+5970:   const [editText, setEditText] = useState({});
+5971:   const [gapModalSection, setGapModalSection] = useState(null);
+5972:   const [cmPanel, setCmPanel] = useState(false);
+5973:   const [bdPanel, setBdPanel] = useState(false);
+5974:   const [qPanel, setQPanel] = useState(false);
+5975:   const [pmpPanel, setPmpPanel] = useState(false);
+5976:   const [dmPanel, setDmPanel] = useState(false);
+5977:   const [amendPanel, setAmendPanel] = useState(false);
+5978: 
+5979:   const loadSections = async (p) => {
+5980:     setSelected(p); setOpenSection(null); setEditText({});
+5981:     try { setSections(await db.sections.listByProposal(p.id)); }
+5982:     catch(e) { alert('Failed: ' + e.message); }
+5983:   };
+5984: 
+5985:   const setStatus = async (status) => {
+5986:     try { await db.proposals.update(selected.id, { status }); setSelected({ ...selected, status }); refresh.proposals(); }
+5987:     catch(e) { alert('Failed: ' + e.message); }
+5988:   };
+5989: 
+5990:   const saveSection = async (s) => {
+5991:     setSaveBusy(s.id);
+5992:     try {
+5993:       const updated = await db.sections.update(s.id, { content: editText[s.id] ?? s.content, status: (editText[s.id] ?? s.content) ? 'Drafted' : 'Empty' });
+5994:       setSections(sections.map(x => x.id === s.id ? updated : x));
+5995:     } catch(e) { alert('Failed: ' + e.message); }
+5996:     finally { setSaveBusy(null); }
+5997:   };
+5998: 
+5999:   const draftSection = async (s) => {
+6000:     setDraftBusy(s.id);
+6001:     try {
+6002:       const client = clients.find(c => c.id === selected.client_id);
+6003:       const opp = opps.find(o => o.id === selected.opportunity_id);
+6004:       let ppRecords = [];
+6005:       if (client) { try { ppRecords = await db.pastPerf.listByClient(client.id); } catch(e) {} }
+6006:       // FAR/DFARS clauses that require a narrative response in THIS section
+6007:       let clauseBlock = '';
+6008:       try {
+6009:         const allReqs = await db.compliance.listByProposal(selected.id);
+6010:         const secClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase());
+6011:         if (secClauses.length) {
+6012:           clauseBlock = '\n\n=== APPLICABLE FAR/DFARS CLAUSES FOR THIS SECTION ===\nThese clauses require a narrative response in THIS section. Address each explicitly — cite the clause number where it strengthens the response and describe your compliance approach. Do NOT list clauses you are not actively responding to; comply-silently clauses are handled elsewhere.\n' + secClauses.map(c => `- ${c.clause_number}${c.clause_title ? ' ' + c.clause_title : ''}: ${(c.requirement_text || '').substring(0, 300)}`).join('\n');
+6013:         }
+6014:       } catch(e) {}
+6015:       let skillContent = null;
+6016:       try {
+6017:         const skillRes = await fetch('/.netlify/functions/fetch-skill', {
+6018:           method: 'POST', headers: { 'Content-Type': 'application/json' },
