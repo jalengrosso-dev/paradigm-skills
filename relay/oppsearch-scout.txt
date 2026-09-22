@@ -1,0 +1,36 @@
+=== OpportunitiesView + ProposalsView signatures ===
+5963:function ProposalsView({ t, proposals, clients, opps, refresh }) {
+
+=== opp list render + existing filters ===
+1048:  const activeOpps = opps.filter(o => !['Won','Lost'].includes(o.stage));
+1049:  const wonOpps = opps.filter(o => o.stage === 'Won');
+1150:  const active = opps.filter(o => !['Won','Lost'].includes(o.stage));
+1151:  const closed = opps.filter(o => ['Won','Lost'].includes(o.stage));
+1708:    const email = (form.email || '').trim().toLowerCase();
+2300:    const txt = ((s.suggestion_type || '') + ' ' + (s.agent_name || '') + ' ' + (s.action_label || '')).toLowerCase();
+2326:  const upcoming = opps.filter(o => ['Identified','Bid Decision Made','Proposal In Progress'].includes(o.stage)).filter(o => { const d = daysUntil(o.due_date); return d > 0 && d <= 14; }).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
+2531:  const activeOpps = opps.filter(o => !['Won','Lost'].includes(o.stage));
+2539:  const decided = opps.filter(o => o.outcome === 'won' || o.outcome === 'lost');
+2540:  const wonOpps = opps.filter(o => o.outcome === 'won');
+2541:  const lostOpps = opps.filter(o => o.outcome === 'lost');
+2558:  lostOpps.forEach(o => { const r = (o.outcome_reason || 'unspecified').toLowerCase().trim(); lossReasons[r] = (lossReasons[r] || 0) + 1; });
+2562:  const stageData = STAGES.map(s => ({ stage: s, value: opps.filter(o => o.stage === s).length, fill: STAGE_COLORS[s] })).filter(d => d.value > 0);
+3124:  const filtered = clients.filter(c => (!q || c.name.toLowerCase().includes(q.toLowerCase())) && (phase === 'all' || c.phase === parseInt(phase)));
+3153:            const co = opps.filter(o => o.client_id === c.id && !['Won','Lost'].includes(o.stage));
+3728:  const co = opps.filter(o => o.client_id === id);
+4464:  const ql = q.toLowerCase();
+4468:    if (ql && !(a.name.toLowerCase().includes(ql) || a.abbrev?.toLowerCase().includes(ql) || a.state?.toLowerCase().includes(ql) || a.type?.toLowerCase().includes(ql))) return false;
+4497:          const oo = opps.filter(o => o.agency_id === a.id).length;
+4595:  const ao = opps.filter(o => o.agency_id === id);
+4784:  const enriched = opps.map(opp => {
+4912:  const filteredOpps = opps.filter(o => {
+4919:    setOpps(opps.map(o => o.id === oppId ? { ...o, stage: newStage } : o));
+4945:          const n = opps.filter(o => noticeGroupOf(o.notice_type) === k).length;
+4958:            const n = opps.filter(o => o.notice_type === ty).length;
+4979:                {sopps.map(o => {
+5549:  const oppDeadlines = opps.filter(o => !['Won','Lost'].includes(o.stage)).map(o => ({ id: `o-${o.id}`, title: `${o.solicitation_number} — DUE`, event_date: o.due_date, event_time: '17:00', type: 'rfp-deadline', locked: true }));
+5793:  const lc = (sections || []).map(s => (s.content || '') + ' ' + (s.title || '')).join(' ').toLowerCase();
+6010:        const secClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase());
+6123:        planClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase()).map(c => `${c.clause_number}${c.clause_title ? ' ' + c.clause_title : ''}: ${(c.requirement_text || '').substring(0, 300)}`);
+
+=== OpportunitiesView top (first 60) ===
