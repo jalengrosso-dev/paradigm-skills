@@ -1,0 +1,4 @@
+3637:    try { await db.bdPlans.create({ client_id: clientId, agency_id: newAgency }); setNewAgency(''); load(); } catch (e) { alert('Add failed: ' + e.message); }
+4559:      await db.agencyTouchpoints.create({ agency_id: agencyId, type, note: note || null, contact_name: contactName || null });
+5044:    title: '', solicitation_number: '', client_id: '', agency_id: '',
+5089:        <select value={form.agency_id} onChange={e => setForm({...form, agency_id: e.target.value})} style={inputStyle(t)}>
