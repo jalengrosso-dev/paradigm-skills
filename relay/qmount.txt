@@ -1,0 +1,3 @@
+6035:  const [qPanel, setQPanel] = useState(false);
+6535:        {qPanel && <QuestionsPanel t={t} proposal={selected} opp={opps.find(o => o.id === selected.opportunity_id)} clients={clients} agencies={agencies} onClose={() => setQPanel(false)} onSaved={(p) => { setSelected(p); refresh.proposals(); }} />}
+8172:function QuestionsPanel({ t, proposal, opp, clients, agencies, onClose, onSaved }) {
