@@ -1,0 +1,100 @@
+import fs from 'fs';
+import path from 'path';
+
+function getApiKey() {
+  const direct = process.env.ANTHROPIC_API_KEY;
+  if (direct) return direct;
+  try {
+    const envContent = fs.readFileSync(path.resolve(process.cwd(), '.env'), 'utf-8');
+    const match = envContent.match(/ANTHROPIC_API_KEY=(.+)/);
+    return match ? match[1].trim() : process.env.ANTHROPIC_API_KEY;
+  } catch(e) { return process.env.ANTHROPIC_API_KEY; }
+}
+
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  try {
+    const { requirements, breakdown, opportunity, client, agency, memories } = await req.json();
+    if ((!requirements || !requirements.length) && !breakdown) {
+      return new Response(JSON.stringify({ error: 'Run the compliance matrix extraction or RFP breakdown first — questions are generated from the shred.' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const reqList = (requirements || []).map(r => `[${r.requirement_type}] ${r.source_reference}: ${String(r.requirement_text || '').substring(0, 240)}`).join('\n');
+
+    const prompt = `You are a GovCon Q&A strategist. From this solicitation shred, produce the questions the TEAM must answer to build a winning solution, and the questions worth submitting to the Contracting Officer during the Q&A period.
+
+DOCTRINE — follow strictly:
+- The Q&A period is for: clarifying ambiguous requirements that affect the approach, surfacing unstated assumptions, and strategically testing whether the solicitation is wired.
+- NEVER propose questions that: reveal win themes or approach, signal inexperience (obvious answers), benefit competitors more than us, ask who the incumbent is, ask about pricing targets, criticize the agency, or challenge why a requirement exists.
+- 10 CO questions MAXIMUM — more signals desperation. Rank by strategic value.
+- THE DEDUP GATE: before listing a CO question, check the KNOWLEDGE CONTEXT below. If it already answers the question, DO NOT list it as a CO question — put it in "answered_internally" with the answer and which context item answered it. Never send the CO a question we can answer ourselves.
+- Reference the solicitation precisely in each CO question ("Reference Section L, paragraph X...").
+
+REQUIREMENTS SHRED:
+${reqList || '(none provided)'}
+
+RFP BREAKDOWN:
+${JSON.stringify(breakdown || 'none', null, 2).substring(0, 12000)}
+
+KNOWLEDGE CONTEXT (what we already know — the dedup source):
+OPPORTUNITY: ${JSON.stringify(opportunity || 'none', null, 2).substring(0, 6000)}
+CLIENT: ${JSON.stringify(client || 'none', null, 2).substring(0, 6000)}
+AGENCY: ${JSON.stringify(agency || 'none', null, 2).substring(0, 4000)}
+STORED INTELLIGENCE: ${(memories || []).map(m => '- ' + m.content).join('\n').substring(0, 6000) || 'None'}
+
+Respond ONLY with JSON, no markdown fences:
+{
+  "internal_questions": [{ "question": <what the team must answer to design the solution>, "requirement_ref": <source_reference it stems from>, "why": <1 sentence — what the answer unlocks> }],
+  "co_questions": [{ "question": <full submission-ready wording with section reference>, "category": "clarification"|"scope"|"wired_test"|"evaluation"|"timing", "rationale": <1 sentence>, "predicted_response": <1 sentence — likely agency answer and what each outcome tells us> }],
+  "answered_internally": [{ "question": <the question we almost asked>, "answer": <the answer from the knowledge context>, "source": <which context item answered it> }]
+}
+internal_questions: as many as the shred genuinely demands. co_questions: max 10, best first.`;
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 10000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const claudeData = await claudeRes.json();
+    const text = (claudeData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    let qb;
+    try {
+      qb = JSON.parse(text.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      return new Response(JSON.stringify({ error: 'Parse failed', raw: text.substring(0, 400) }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      question_bank: {
+        internal_questions: Array.isArray(qb.internal_questions) ? qb.internal_questions : [],
+        co_questions: (Array.isArray(qb.co_questions) ? qb.co_questions : []).slice(0, 10).map(q => ({ ...q, asked: false, agency_answer: '' })),
+        answered_internally: Array.isArray(qb.answered_internally) ? qb.answered_internally : [],
+        generated_at: new Date().toISOString()
+      }
+    }), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
