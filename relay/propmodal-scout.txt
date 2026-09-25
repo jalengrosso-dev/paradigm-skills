@@ -1,12 +1,25 @@
-=== New Proposal modal opportunity dropdown ===
+=== proposal modal opp dropdown ===
+9152:          <option value="">Select opportunity...</option>
+9520:          <option value="">Select opportunity...</option>
+10926:          <option value="">Select opportunity...</option>
+=== modal component + client select ===
+218:    listByOpp: async (oppId) => { const { data, error } = await supabase.from('opportunity_competitors').select('*').eq('opportunity_id', oppId).order('created_at'); if (error) throw error; return data || []; },
+403:    listByOpportunity: async (oppId) => { const { data, error } = await supabase.from('opportunity_scores').select('*').eq('opportunity_id', oppId); if (error) throw error; return data || []; },
+1965:      {modal && <PastPerfModal t={t} clientId={clientId} record={editing} onClose={() => setModal(false)} onSaved={() => { setModal(false); load(); }} />}
+2928:      {modal && <LeadModal t={t} onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh.leads(); }} />}
+3182:      {modal && <ClientModal t={t} onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh.clients(); }} />}
+3447:  const blank = () => ({ client_id: clientId, opportunity_id: '', category: 'Performance', description: '', likelihood: 3, impact: 3, treatment: 'Mitigate', mitigation: '', owner: '', review_date: '', status: 'Open' });
+3452:      const payload = { ...form, opportunity_id: form.opportunity_id || null, review_date: form.review_date || null, likelihood: Number(form.likelihood), impact: Number(form.impact) };
 3473:            <div><div style={{ fontSize: 11, color: t.textSec, marginBottom: 3 }}>Opportunity (optional)</div><select value={form.opportunity_id} onChange={e => setForm({ ...form, opportunity_id: e.target.value })} style={{ ...inputStyle(t), width: '100%', fontSize: 12 }}><option value="">Client-level (no specific opp)</option>{clientOpps.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</select></div>
-6534:        {bdPanel && <BreakdownPanel t={t} proposal={selected} opp={opps.find(o => o.id === selected.opportunity_id)} sections={sections} onClose={() => setBdPanel(false)} onSaved={(p) => { setSelected(p); refresh.proposals(); }} onSectionsApplied={async () => { try { setSections(await db.sections.listByProposal(selected.id)); } catch(e) {} }} />}
-9110:function ProposalModal({ t, clients, opps, onClose, onSaved }) {
-9152:          <option value="">Select opportunity...</option>
-9520:          <option value="">Select opportunity...</option>
-10926:          <option value="">Select opportunity...</option>
-
-=== modal opp select render context ===
-9152:          <option value="">Select opportunity...</option>
-9520:          <option value="">Select opportunity...</option>
-10926:          <option value="">Select opportunity...</option>
+3503:                  {r.opportunity_id && <span style={{ fontSize: 11, color: t.textTer }}>· {oppName(r.opportunity_id)}</span>}
+3509:              <button onClick={() => setForm({ ...r, opportunity_id: r.opportunity_id || '', review_date: r.review_date || '' })} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: t.textSec, fontSize: 11 }}>Edit</button>
+4542:      {modal && <AgencyModal t={t} agency={modal.agency} onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh.agencies(); }} />}
+4778:        body: JSON.stringify({ opportunity_id: oppId, client_id: clId })
+4792:    const oppScores = scores.filter(s => s.opportunity_id === opp.id).sort((a, b) => b.score - a.score).map(s => ({ ...s, client: clients.find(c => c.id === s.client_id) }));
+5066:      {modal && <OppModal t={t} clients={clients} agencies={agencies} onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh.opps(); }} />}
+5460:  const oppScores = (scores || []).filter(s => s.opportunity_id === id).sort((a,b) => b.score - a.score);
+5464:      const res = await fetch('/.netlify/functions/score-opportunity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opportunity_id: id, client_id: clientId }) });
+6065:      const opp = opps.find(o => o.id === selected.opportunity_id);
+6181:      const opp = opps.find(o => o.id === selected.opportunity_id);
+6240:      const opp = opps.find(o => o.id === selected.opportunity_id);
+6302:      const opp = opps.find(o => o.id === selected.opportunity_id);
