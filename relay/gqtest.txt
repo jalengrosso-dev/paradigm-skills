@@ -1,0 +1,25 @@
+HTTP/2 504 
+cache-control: no-store
+cache-status: "Netlify Edge"; fwd=miss
+content-language: en
+content-type: text/html
+date: Fri, 25 Sep 2026 01:51:27 GMT
+server: Netlify
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-nf-request-id: 01M3B44BKMQPXKN3NPSETW516J
+content-length: 265
+
+<HTML>
+<HEAD>
+<TITLE>Inactivity Timeout</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="white" FGCOLOR="black">
+<H1>Inactivity Timeout</H1>
+<HR>
+
+<FONT FACE="Helvetica,Arial"><B>
+Description: Too much time has passed without sending any data for document.
+</B></FONT>
+<HR>
+</BODY>
