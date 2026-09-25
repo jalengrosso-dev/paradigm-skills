@@ -1,0 +1,91 @@
+8172: function QuestionsPanel({ t, proposal, opp, clients, agencies, onClose, onSaved }) {
+8173:   const [qb, setQb] = useState(proposal.question_bank || null);
+8174:   const [busy, setBusy] = useState(false);
+8175:   const [saveBusy, setSaveBusy] = useState(false);
+8176:   const generate = async () => {
+8177:     setBusy(true);
+8178:     try {
+8179:       let requirements = [];
+8180:       try { requirements = (await db.compliance.listByProposal(proposal.id)).filter(r => !r.superseded); } catch(e) {}
+8181:       let memories = [];
+8182:       if (opp) {
+8183:         try { const memRes = await supabase.from('memories').select('content').or('entity_id.eq.' + opp.id + ',entity_type.eq.agency').order('created_at', { ascending: false }).limit(12); memories = memRes.data || []; } catch(e) {}
+8184:       }
+8185:       const client = opp ? (clients || []).find(c => c.id === opp.client_id) || null : null;
+8186:       const agency = opp ? (agencies || []).find(a => a.id === opp.agency_id) || null : null;
+8187:       const res = await fetch('/.netlify/functions/generate-questions', {
+8188:         method: 'POST',
+8189:         headers: { 'Content-Type': 'application/json' },
+8190:         body: JSON.stringify({ requirements: requirements.map(r => ({ requirement_type: r.requirement_type, source_reference: r.source_reference, requirement_text: r.requirement_text })), breakdown: proposal.rfp_breakdown || null, opportunity: opp || null, client, agency, memories })
+8191:       });
+8192:       const data = await res.json();
+8193:       if (data.success && data.question_bank) {
+8194:         setQb(data.question_bank);
+8195:         try { const updated = await db.proposals.update(proposal.id, { question_bank: data.question_bank }); if (onSaved) onSaved(updated); } catch(e) { alert('Generated but save failed: ' + e.message); }
+8196:       } else { alert('Issue: ' + (data.error || 'unknown')); }
+8197:     } catch(e) { alert('Failed: ' + e.message); }
+8198:     finally { setBusy(false); }
+8199:   };
+8200:   const persist = async (next) => {
+8201:     setQb(next); setSaveBusy(true);
+8202:     try { const updated = await db.proposals.update(proposal.id, { question_bank: next }); if (onSaved) onSaved(updated); } catch(e) { alert('Save failed: ' + e.message); }
+8203:     setSaveBusy(false);
+8204:   };
+8205:   const setCoField = (i, field, v) => {
+8206:     const next = { ...qb, co_questions: qb.co_questions.map((q, idx) => idx === i ? { ...q, [field]: v } : q) };
+8207:     setQb(next);
+8208:   };
+8209:   const CAT_COLORS = { clarification: '#3B82F6', scope: '#A855F7', wired_test: '#EF4444', evaluation: '#EC4899', timing: '#F59E0B' };
+8210:   const copyAsked = () => {
+8211:     const txt = (qb.co_questions || []).filter(q => q.asked).map((q, i) => (i + 1) + '. ' + q.question).join('\n\n');
+8212:     if (!txt) return alert('Check the questions you plan to submit first');
+8213:     navigator.clipboard.writeText(txt).then(() => alert('Submission list copied')).catch(() => alert('Copy failed'));
+8214:   };
+8215:   return (
+8216:     <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,8,20,0.7)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+8217:       <div onClick={e => e.stopPropagation()} style={{ background: t.bgSubtle, borderRadius: 16, border: '1px solid ' + t.border, width: '100%', maxWidth: 1000, maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+8218:         <div style={{ padding: '18px 24px', borderBottom: '1px solid ' + t.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+8219:           <div>
+8220:             <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: t.text }}>Question Engine</h2>
+8221:             <p style={{ fontSize: 12, color: t.textSec, margin: '4px 0 0' }}>{proposal.title}{opp && opp.qa_deadline ? ' — Q&A deadline ' + opp.qa_deadline : ''}</p>
+8222:           </div>
+8223:           <div style={{ display: 'flex', gap: 8 }}>
+8224:             <button onClick={generate} disabled={busy} style={{ ...btnStyle(t, 'primary'), fontSize: 12, opacity: busy ? 0.6 : 1 }}>{busy ? 'Generating...' : qb ? 'Regenerate' : 'Generate Questions'}</button>
+8225:             {qb && <button onClick={copyAsked} style={{ ...btnStyle(t, 'secondary'), fontSize: 12 }}>Copy checked</button>}
+8226:             <button onClick={onClose} style={{ ...btnStyle(t, 'secondary'), fontSize: 12 }}>Close</button>
+8227:           </div>
+8228:         </div>
+8229:         <div style={{ padding: 20, overflowY: 'auto' }}>
+8230:           {!qb && <div style={{ fontSize: 13, color: t.textTer, padding: 20, textAlign: 'center' }}>Runs off the compliance matrix + RFP breakdown. Generate after the shred — questions come from requirements, and anything the knowledgebase already answers gets filtered out of the CO list.</div>}
+8231:           {qb && (
+8232:             <>
+8233:               {Array.isArray(qb.co_questions) && qb.co_questions.length > 0 && (
+8234:                 <div style={{ background: t.surface, border: '1px solid ' + t.border, borderRadius: 10, padding: 14, marginBottom: 14 }}>
+8235:                   <div style={{ fontSize: 12, fontWeight: 600, color: t.text, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>CO Questions — check what you'll submit ({qb.co_questions.filter(q => q.asked).length} selected)</div>
+8236:                   <div style={{ fontSize: 11, color: t.textTer, marginBottom: 10 }}>Ranked by strategic value. Submit important ones early in the window; save tactical ones for the last 24 hours.</div>
+8237:                   {qb.co_questions.map((q, i) => (
+8238:                     <div key={i} style={{ borderBottom: i < qb.co_questions.length - 1 ? '1px solid ' + t.border : 'none', padding: '8px 0' }}>
+8239:                       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+8240:                         <input type="checkbox" checked={!!q.asked} onChange={e => { setCoField(i, 'asked', e.target.checked); persist({ ...qb, co_questions: qb.co_questions.map((x, idx) => idx === i ? { ...x, asked: e.target.checked } : x) }); }} style={{ marginTop: 3 }} />
+8241:                         <div style={{ flex: 1 }}>
+8242:                           <div style={{ fontSize: 13, color: t.text }}>{i + 1}. {q.question}</div>
+8243:                           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 3, flexWrap: 'wrap' }}>
+8244:                             <span className="mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', padding: '1px 6px', borderRadius: 3, background: (CAT_COLORS[q.category] || '#64748B') + '22', color: CAT_COLORS[q.category] || '#64748B' }}>{q.category}</span>
+8245:                             <span style={{ fontSize: 11, color: t.textSec }}>{q.rationale}</span>
+8246:                           </div>
+8247:                           {q.predicted_response && <div style={{ fontSize: 11, color: t.textTer, marginTop: 2 }}>Predicted: {q.predicted_response}</div>}
+8248:                           <textarea value={q.agency_answer || ''} onChange={e => setCoField(i, 'agency_answer', e.target.value)} onBlur={() => persist(qb)} rows={1} placeholder="Agency answer (paste when Q&A responses drop)..." style={{ ...inputStyle(t), width: '100%', resize: 'vertical', fontSize: 11, marginTop: 5 }} />
+8249:                         </div>
+8250:                       </div>
+8251:                     </div>
+8252:                   ))}
+8253:                   {saveBusy && <div className="mono" style={{ fontSize: 10, color: t.textTer, marginTop: 4 }}>Saving...</div>}
+8254:                 </div>
+8255:               )}
+8256:               {Array.isArray(qb.answered_internally) && qb.answered_internally.length > 0 && (
+8257:                 <div style={{ background: '#10B98110', border: '1px solid #10B98144', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+8258:                   <div style={{ fontSize: 12, fontWeight: 600, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Answered by the Knowledgebase — do NOT ask the CO</div>
+8259:                   {qb.answered_internally.map((q, i) => (
+8260:                     <div key={i} style={{ marginBottom: 8 }}>
+8261:                       <div style={{ fontSize: 12, color: t.text, fontWeight: 500 }}>{q.question}</div>
+8262:                       <div style={{ fontSize: 12, color: t.textSec }}>{q.answer} <span style={{ color: t.textTer }}>({q.source})</span></div>
