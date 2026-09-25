@@ -1,0 +1,22 @@
+=== netlify.toml ===
+[build]
+  functions = "netlify/functions"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."weekly-briefing"]
+  timeout = 60
+
+[functions."trigger-checker-background"]
+  timeout = 60
+
+[dev]
+  framework = "vite"
+  targetPort = 5173
+  port = 8888
+=== gq function ===
+     100 netlify/functions/generate-questions.js
+67:        model: 'claude-sonnet-4-5',
+68:        max_tokens: 10000,
