@@ -1,0 +1,43 @@
+6028:   const [openSection, setOpenSection] = useState(null);
+6029:   const [draftBusy, setDraftBusy] = useState(null);
+6030:   const [saveBusy, setSaveBusy] = useState(null);
+6031:   const [editText, setEditText] = useState({});
+6032:   const [gapModalSection, setGapModalSection] = useState(null);
+6033:   const [cmPanel, setCmPanel] = useState(false);
+6034:   const [bdPanel, setBdPanel] = useState(false);
+6035:   const [qPanel, setQPanel] = useState(false);
+6036:   const [pmpPanel, setPmpPanel] = useState(false);
+6037:   const [dmPanel, setDmPanel] = useState(false);
+6038:   const [amendPanel, setAmendPanel] = useState(false);
+6039:   const [propSearch, setPropSearch] = useState('');
+6040: 
+6041:   const loadSections = async (p) => {
+6042:     setSelected(p); setOpenSection(null); setEditText({});
+6043:     try { setSections(await db.sections.listByProposal(p.id)); }
+6044:     catch(e) { alert('Failed: ' + e.message); }
+6045:   };
+6046: 
+6047:   const setStatus = async (status) => {
+6048:     try { await db.proposals.update(selected.id, { status }); setSelected({ ...selected, status }); refresh.proposals(); }
+6049:     catch(e) { alert('Failed: ' + e.message); }
+6050:   };
+6051: 
+6052:   const saveSection = async (s) => {
+6053:     setSaveBusy(s.id);
+6054:     try {
+6055:       const updated = await db.sections.update(s.id, { content: editText[s.id] ?? s.content, status: (editText[s.id] ?? s.content) ? 'Drafted' : 'Empty' });
+6056:       setSections(sections.map(x => x.id === s.id ? updated : x));
+6057:     } catch(e) { alert('Failed: ' + e.message); }
+6058:     finally { setSaveBusy(null); }
+6059:   };
+6060: 
+6061:   const draftSection = async (s) => {
+6062:     setDraftBusy(s.id);
+6063:     try {
+6064:       const client = clients.find(c => c.id === selected.client_id);
+6065:       const opp = opps.find(o => o.id === selected.opportunity_id);
+6066:       let ppRecords = [];
+6067:       if (client) { try { ppRecords = await db.pastPerf.listByClient(client.id); } catch(e) {} }
+6068:       // FAR/DFARS clauses that require a narrative response in THIS section
+6069:       let clauseBlock = '';
+6070:       try {
