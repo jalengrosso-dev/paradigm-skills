@@ -1,0 +1,51 @@
+9110: function ProposalModal({ t, clients, opps, onClose, onSaved }) {
+9111:   const [form, setForm] = useState({ title: '', client_id: '', opportunity_id: '', due_date: '', notes: '', doc_type: 'proposal' });
+9112:   const [busy, setBusy] = useState(false);
+9113: 
+9114:   const save = async () => {
+9115:     if (!form.title) return alert('Proposal title is required');
+9116:     setBusy(true);
+9117:     try {
+9118:       const p = await db.proposals.create({
+9119:         title: form.title,
+9120:         client_id: form.client_id || null,
+9121:         opportunity_id: form.opportunity_id || null,
+9122:         due_date: form.due_date || null,
+9123:         notes: form.notes || null,
+9124:         doc_type: form.doc_type || 'proposal',
+9125:         status: 'Outline'
+9126:       });
+9127:       const chosenTemplate = (DOC_TYPES.find(d => d.id === form.doc_type) || DOC_TYPES[0]).template;
+9128:       await db.sections.createMany(chosenTemplate.map((s, i) => ({ proposal_id: p.id, volume: s.volume, title: s.title, section_order: i })));
+9129:       onSaved(p);
+9130:     } catch(e) { alert('Failed: ' + e.message); }
+9131:     finally { setBusy(false); }
+9132:   };
+9133: 
+9134:   const clientOpps = form.client_id ? (opps || []).filter(o => o.client_id === form.client_id) : (opps || []);
+9135: 
+9136:   return <Modal t={t} title="New Proposal" onClose={onClose}>
+9137:     <FormRow t={t} label="Proposal Title *"><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., USACE Savannah MATOC Technical Proposal" style={inputStyle(t)} /></FormRow>
+9138:     <FormRow t={t} label="Document Type">
+9139:       <select value={form.doc_type} onChange={e => setForm({...form, doc_type: e.target.value})} style={inputStyle(t)}>
+9140:         {DOC_TYPES.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+9141:       </select>
+9142:     </FormRow>
+9143:     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+9144:       <FormRow t={t} label="Client">
+9145:         <select value={form.client_id} onChange={e => setForm({...form, client_id: e.target.value, opportunity_id: ''})} style={inputStyle(t)}>
+9146:           <option value="">Select client...</option>
+9147:           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+9148:         </select>
+9149:       </FormRow>
+9150:       <FormRow t={t} label="Opportunity">
+9151:         <select value={form.opportunity_id} onChange={e => setForm({...form, opportunity_id: e.target.value})} style={inputStyle(t)}>
+9152:           <option value="">Select opportunity...</option>
+9153:           {clientOpps.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
+9154:         </select>
+9155:       </FormRow>
+9156:     </div>
+9157:     <FormRow t={t} label="Due Date"><input type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})} style={inputStyle(t)} /></FormRow>
+9158:     <FormRow t={t} label="Notes / Win Themes"><textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} placeholder="Win themes, discriminators, page limits, anything the AI should factor in..." style={{ ...inputStyle(t), resize: 'vertical' }} /></FormRow>
+9159:     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+9160:       <button onClick={onClose} style={btnStyle(t, 'secondary')}>Cancel</button>
