@@ -1,0 +1,3 @@
+6024:function ProposalsView({ t, proposals, clients, opps, refresh }) {
+---route---
+614:          {view === 'proposals' && <ProposalsView {...{ t, proposals, clients, opps, refresh }} />}
