@@ -1,0 +1,30 @@
+8176:   const generate = async () => {
+8177:     setBusy(true);
+8178:     try {
+8179:       let requirements = [];
+8180:       try { requirements = (await db.compliance.listByProposal(proposal.id)).filter(r => !r.superseded); } catch(e) {}
+8181:       let memories = [];
+8182:       if (opp) {
+8183:         try { const memRes = await supabase.from('memories').select('content').or('entity_id.eq.' + opp.id + ',entity_type.eq.agency').order('created_at', { ascending: false }).limit(12); memories = memRes.data || []; } catch(e) {}
+8184:       }
+8185:       const client = opp ? (clients || []).find(c => c.id === opp.client_id) || null : null;
+8186:       const agency = opp ? (agencies || []).find(a => a.id === opp.agency_id) || null : null;
+8187:       const res = await fetch('/.netlify/functions/generate-questions', {
+8188:         method: 'POST',
+8189:         headers: { 'Content-Type': 'application/json' },
+8190:         body: JSON.stringify({ requirements: requirements.map(r => ({ requirement_type: r.requirement_type, source_reference: r.source_reference, requirement_text: r.requirement_text })), breakdown: proposal.rfp_breakdown || null, opportunity: opp || null, client, agency, memories })
+8191:       });
+8192:       const data = await res.json();
+8193:       if (data.success && data.question_bank) {
+8194:         setQb(data.question_bank);
+8195:         try { const updated = await db.proposals.update(proposal.id, { question_bank: data.question_bank }); if (onSaved) onSaved(updated); } catch(e) { alert('Generated but save failed: ' + e.message); }
+8196:       } else { alert('Issue: ' + (data.error || 'unknown')); }
+8197:     } catch(e) { alert('Failed: ' + e.message); }
+8198:     finally { setBusy(false); }
+8199:   };
+8200:   const persist = async (next) => {
+8201:     setQb(next); setSaveBusy(true);
+8202:     try { const updated = await db.proposals.update(proposal.id, { question_bank: next }); if (onSaved) onSaved(updated); } catch(e) { alert('Save failed: ' + e.message); }
+8203:     setSaveBusy(false);
+8204:   };
+8205:   const setCoField = (i, field, v) => {
