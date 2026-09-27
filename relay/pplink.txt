@@ -1,0 +1,28 @@
+=== proofpoints load in theme modal ===
+537:      db.docs.list(), db.notifs.list(), db.suggestions.list(), db.prospects.list(), db.scores.listAll(), db.surety.list(), db.proposals.list(), db.revenue.list(), db.outreachDrafts.listPending(), db.library.list(), db.contracts.list(), db.proofpoints.list(), db.keypersonnel.list()
+584:    proofpoints: async () => setProofpoints(await db.proofpoints.list()),
+6347:      if (apxSections.length || (selected.win_themes || []).some(th => th.proof_point_id)) {
+6911:      const saved = editing ? await db.proofpoints.update(editing.id, payload) : await db.proofpoints.create(payload);
+6913:      fetch('/.netlify/functions/proofpoint-embed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proof_point_id: saved.id, content: embedText }) }).catch(() => {});
+6922:    try { await db.proofpoints.remove(pp.id); await refresh(); } catch(e) { alert('Delete failed: ' + e.message); }
+7664:    else themes.forEach((th, i) => { L.push((i + 1) + '. ' + (th.label || '')); if (th.statement) L.push('   ' + th.statement); const flags = []; if (!th.proof_point_id) flags.push('NO PROOF LINKED'); if (!(th.litmus_unique && th.litmus_scorable)) flags.push('FAILS LITMUS'); if (flags.length) L.push('   ⚠ ' + flags.join(' · ')); });
+7734:              const flags = []; if (!th.proof_point_id) flags.push('no proof'); if (!(th.litmus_unique && th.litmus_scorable)) flags.push('fails litmus');
+7838:  const [themes, setThemes] = useState((proposal.win_themes && proposal.win_themes.length) ? proposal.win_themes : [{ label: '', statement: '', discriminator: '', proof_point_id: '', litmus_unique: false, litmus_scorable: false, keywords: [] }]);
+7841:  const [pps, setPps] = useState([]);
+7842:  useEffect(() => { db.proofpoints.list().then(setPps).catch(() => setPps([])); }, []);
+7853:    if (!th.proof_point_id) fails.push('no proof point linked');
+7862:  const addTheme = () => { if (themes.length >= 5) return; setThemes([...themes, { label: '', statement: '', discriminator: '', proof_point_id: '', litmus_unique: false, litmus_scorable: false, keywords: [] }]); setKwInputs([...kwInputs, '']); };
+7873:      const payload = themes.map((th, i) => ({ label: (th.label || '').trim(), statement: (th.statement || '').trim(), discriminator: (th.discriminator || '').trim(), proof_point_id: th.proof_point_id || '', litmus_unique: !!th.litmus_unique, litmus_scorable: !!th.litmus_scorable, ships: shipCheck(th).length === 0, keywords: kwInputs[i].split(',').map(k => k.trim()).filter(Boolean) })).filter(th => th.label && th.keywords.length > 0);
+7899:          <select value={th.proof_point_id || ''} onChange={e => setField(i, 'proof_point_id', e.target.value)} style={{ ...inputStyle(t), flex: 1, fontSize: 12 }}>
+8780:  const unprovenThemes = themes.filter(th => !th.proof_point_id);
+=== db.proofpoints helper ===
+320:  proofpoints: {
+321:    list: async () => { const { data, error } = await supabase.from('proof_points').select('id,created_at,updated_at,claim,metric,source,poc_name,cleared_to_cite,status,client_id,tags,usage_count,last_used_at').order('updated_at', { ascending: false }); if (error) throw error; return data || []; },
+322:    create: async (row) => { const { data, error } = await supabase.from('proof_points').insert(row).select('id,created_at,updated_at,claim,metric,source,poc_name,cleared_to_cite,status,client_id,tags,usage_count,last_used_at').single(); if (error) throw error; return data; },
+323:    update: async (id, patch) => { const { data, error } = await supabase.from('proof_points').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select('id,created_at,updated_at,claim,metric,source,poc_name,cleared_to_cite,status,client_id,tags,usage_count,last_used_at').single(); if (error) throw error; return data; },
+324:    remove: async (id) => { const { error } = await supabase.from('proof_points').delete().eq('id', id); if (error) throw error; },
+584:    proofpoints: async () => setProofpoints(await db.proofpoints.list()),
+6141:        if (pl.proof_points && pl.proof_points.length) L.push('Supply real evidence for: ' + pl.proof_points.join('; ') + ' (use ONLY documented facts; never fabricate numbers)');
+6201:        body: JSON.stringify({ section_title: s.title, section_type: s.volume, rfp_text: opp ? (opp.rfp_full_text || opp.description || '') : '', win_themes: selected.win_themes || [], hot_buttons: (opp && opp.capture && Array.isArray(opp.capture.hot_buttons)) ? opp.capture.hot_buttons.slice().sort((a,b) => (a.rank||99)-(b.rank||99)).slice(0,3).map(h => h.text).filter(Boolean) : [], available_proof_points: proofPoints, applicable_clauses: planClauses, existing_content: s.content || '' })
+6606:                                    <textarea value={(plan.proof_points || []).join('\n')} onChange={e => setField('proof_points', e.target.value.split('\n').map(x => x.trim()).filter(Boolean))} rows={2} style={{ ...inputStyle(t), width: '100%', fontSize: 12, resize: 'vertical' }} />
+7677:        if (pl.proof_points && pl.proof_points.length) L.push('   Proof: ' + pl.proof_points.join('; '));
