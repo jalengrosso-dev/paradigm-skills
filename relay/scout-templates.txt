@@ -1,0 +1,80 @@
+src/App.jsx:315:    list: async () => { const { data, error } = await supabase.from('content_library').select('id,created_at,updated_at,title,category,content,t
+src/App.jsx:316:    create: async (row) => { const { data, error } = await supabase.from('content_library').insert(row).select('id,created_at,updated_at,title,c
+src/App.jsx:317:    update: async (id, patch) => { const { data, error } = await supabase.from('content_library').update({ ...patch, updated_at: new Date().toIS
+src/App.jsx:318:    remove: async (id) => { const { error } = await supabase.from('content_library').delete().eq('id', id); if (error) throw error; },
+src/App.jsx:4120:        test_mode: !!r.test_mode, embedded_edit_url: r.embedded_edit_url
+src/App.jsx:6438:      fetch('/.netlify/functions/archive-embed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prop
+src/App.jsx:6912:      const embedText = [form.claim, form.metric, form.source, (form.tags || []).join(' ')].filter(Boolean).join(' — ');
+src/App.jsx:6913:      fetch('/.netlify/functions/proofpoint-embed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ p
+src/App.jsx:7193:      fetch('/.netlify/functions/library-embed', {
+src/App.jsx:7228:      <button onClick={save} disabled={busy} style={{ ...btnStyle(t, 'primary'), opacity: busy ? 0.6 : 1 }}>{busy ? 'Saving + embedding...' : '
+src/App.jsx:8193:        body: JSON.stringify({ proposal_id: proposal.id, requirements: requirements.map(r => ({ requirement_type: r.requirement_type, source_re
+src/App.jsx:8301:  const [bd, setBd] = useState(proposal.rfp_breakdown || null);
+src/App.jsx:8303:  const [inputOpen, setInputOpen] = useState(!proposal.rfp_breakdown);
+src/App.jsx:8321:          const updated = await db.proposals.update(proposal.id, { rfp_breakdown: data.breakdown });
+src/App.jsx:11723:    // 4. Memory search (OpenAI embeddings)
+netlify/functions/search-memories.js:12:    const embeddingRes = await fetch('https://api.openai.com/v1/embeddings', {
+netlify/functions/search-memories.js:18:      body: JSON.stringify({ input: query, model: 'text-embedding-3-small' })
+netlify/functions/search-memories.js:20:    const embeddingData = await embeddingRes.json();
+netlify/functions/search-memories.js:21:    const embedding = embeddingData.data?.[0]?.embedding;
+netlify/functions/search-memories.js:23:    if (!embedding) {
+netlify/functions/search-memories.js:37:        query_embedding: embedding,
+netlify/functions/signwell.js:65:        embedded_edit_url: data.embedded_edit_url
+netlify/functions/library-promote-wins.js:3:// but sources only from proposal_sections_archive whose opportunity stage = 'Won'.
+netlify/functions/library-promote-wins.js:18:    const embed = async (text) => {
+netlify/functions/library-promote-wins.js:19:      const r = await fetch('https://api.openai.com/v1/embeddings', {
+netlify/functions/library-promote-wins.js:21:        body: JSON.stringify({ input: text.substring(0, 8000), model: 'text-embedding-3-small' })
+netlify/functions/library-promote-wins.js:24:      return d.data?.[0]?.embedding || null;
+netlify/functions/library-promote-wins.js:50:    const archRes = await fetch(`${SUPABASE_URL}/rest/v1/proposal_sections_archive?select=id,volume,section_title,c
+netlify/functions/library-promote-wins.js:60:    const existRes = await fetch(`${SUPABASE_URL}/rest/v1/content_library?select=tags&source=eq.won_proposal`, { he
+netlify/functions/library-promote-wins.js:69:    // Step 4 — build + insert candidates (as draft), embed each
+netlify/functions/library-promote-wins.js:86:      const insRes = await fetch(`${SUPABASE_URL}/rest/v1/content_library`, {
+netlify/functions/library-promote-wins.js:93:        const emb = await embed(content);
+netlify/functions/library-promote-wins.js:95:          await fetch(`${SUPABASE_URL}/rest/v1/content_library?id=eq.${row.id}`, {
+netlify/functions/library-promote-wins.js:96:            method: 'PATCH', headers, body: JSON.stringify({ embedding: emb })
+netlify/functions/library-seed.js:18:    const embed = async (text) => {
+netlify/functions/library-seed.js:19:      const r = await fetch('https://api.openai.com/v1/embeddings', {
+netlify/functions/library-seed.js:21:        body: JSON.stringify({ input: text.substring(0, 8000), model: 'text-embedding-3-small' })
+netlify/functions/library-seed.js:24:      return d.data?.[0]?.embedding || null;
+netlify/functions/library-seed.js:64:    // Insert + embed each (capped at 40 to stay safe)
+netlify/functions/library-seed.js:67:      const insRes = await fetch(`${SUPABASE_URL}/rest/v1/content_library`, {
+netlify/functions/library-seed.js:74:        const emb = await embed(c.content);
+netlify/functions/library-seed.js:76:          await fetch(`${SUPABASE_URL}/rest/v1/content_library?id=eq.${row.id}`, {
+netlify/functions/library-seed.js:77:            method: 'PATCH', headers, body: JSON.stringify({ embedding: emb })
+netlify/functions/library-embed.js:23:    // Step 1 — Generate embedding
+netlify/functions/library-embed.js:24:    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+netlify/functions/library-embed.js:32:        model: 'text-embedding-3-small'
+netlify/functions/library-embed.js:36:    const embeddingText = await embeddingResponse.text();
+netlify/functions/library-embed.js:37:    let embedding = null;
+netlify/functions/library-embed.js:39:      const parsed = JSON.parse(embeddingText);
+netlify/functions/library-embed.js:40:      embedding = parsed.data?.[0]?.embedding || null;
+netlify/functions/library-embed.js:42:      embedding = null;
+netlify/functions/library-embed.js:45:    if (!embedding) {
+netlify/functions/library-embed.js:49:        debug: embeddingText.substring(0, 300)
+netlify/functions/library-embed.js:56:    // Step 2 — Write embedding to row
+netlify/functions/library-embed.js:58:      `${SUPABASE_URL}/rest/v1/content_library?id=eq.${library_id}`,
+netlify/functions/library-embed.js:68:          embedding: embedding,
+netlify/functions/library-embed.js:79:      embedding_dims: embedding.length,
+netlify/functions/proposal-archive-search.js:1:// Semantic search over submitted-proposal sections (proposal_sections_archive).
+netlify/functions/proposal-archive-search.js:2:// Clone of library-search.js, pointed at match_proposal_archive.
+netlify/functions/proposal-archive-search.js:21:    // Step 1 — embed the query
+netlify/functions/proposal-archive-search.js:22:    const embedRes = await fetch('https://api.openai.com/v1/embeddings', {
+netlify/functions/proposal-archive-search.js:25:      body: JSON.stringify({ input: query, model: 'text-embedding-3-small' })
+netlify/functions/proposal-archive-search.js:27:    const embedData = await embedRes.json();
+netlify/functions/proposal-archive-search.js:28:    const queryEmbedding = embedData.data?.[0]?.embedding;
+netlify/functions/proposal-archive-search.js:30:      return new Response(JSON.stringify({ error: 'Query embedding failed' }), {
+netlify/functions/proposal-archive-search.js:35:    // Step 2 — call match_proposal_archive RPC
+netlify/functions/proposal-archive-search.js:36:    const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/match_proposal_archive`, {
+netlify/functions/proposal-archive-search.js:44:        query_embedding: queryEmbedding,
+netlify/functions/archive-embed.js:1:// Embeds submitted-proposal sections into proposal_sections_archive for RAG search.
+netlify/functions/archive-embed.js:3://   { proposal_id }  -> embed one proposal's snapshot sections (called on submit)
+netlify/functions/archive-embed.js:5:// Best-effort and idempotent: re-embedding a proposal replaces its existing rows.
+netlify/functions/archive-embed.js:23:  async function embed(text) {
+netlify/functions/archive-embed.js:24:    const r = await fetch('https://api.openai.com/v1/embeddings', {
+netlify/functions/archive-embed.js:27:      body: JSON.stringify({ input: text, model: 'text-embedding-3-small' })
+netlify/functions/archive-embed.js:30:    try { return JSON.parse(t).data?.[0]?.embedding || null; } catch (e) { return null; }
+netlify/functions/archive-embed.js:33:  // Embed one proposal's snapshot sections. Returns count embedded.
+netlify/functions/archive-embed.js:34:  async function embedProposal(prop) {
+netlify/functions/archive-embed.js:41:    await fetch(`${SUPABASE_URL}/rest/v1/proposal_sections_archive?proposal_id=eq.${prop.id}`, {
+netlify/functions/archive-embed.js:47:      const vec = await embed(String(s.content).substring(0, 30000));
+netlify/functions/archive-embed.js:48:      if (!vec) continue; // skip a section that failed to embed; don't abort the whole proposal
