@@ -1,0 +1,30 @@
+=== BDPANEL ===
+6053:  const [bdPanel, setBdPanel] = useState(false);
+6565:        {bdPanel && <BreakdownPanel t={t} proposal={selected} opp={opps.find(o => o.id === selected.opportunity_id)} sections={sections} onClose={() => setBdPanel(false)} onSaved={(p) => { setSelected(p); refresh.proposals(); }} onSect
+8588:function BreakdownPanel({ t, proposal, opp, sections, onClose, onSaved, onSectionsApplied }) {
+=== PROPOSAL CREATE 9375-9395 ===
+                {inWindow && <span style={{ fontSize: 10, marginLeft: 8, padding: '2px 6px', borderRadius: 4, background: '#F59E0B22', color: '#F59E0B', fontWeight: 600 }}>90-DAY WINDOW — re-engage CO now</span>}
+              </div>
+              <select value={o.status} onChange={e => setOptStatus(o, e.target.value)} style={{ ...inputStyle(t), width: 'auto', fontSize: 11, padding: '4px 8px' }}>
+                {['Pending','Exercised','Declined'].map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+          );
+        })}
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          <input type="number" value={newOpt.option_number} onChange={e => setNewOpt({...newOpt, option_number: e.target.value})} placeholder="#" style={{ ...inputStyle(t), width: 60 }} />
+          <input type="date" value={newOpt.start_date} onChange={e => setNewOpt({...newOpt, start_date: e.target.value})} style={{ ...inputStyle(t), flex: 1, minWidth: 130 }} />
+          <input type="date" value={newOpt.end_date} onChange={e => setNewOpt({...newOpt, end_date: e.target.value})} style={{ ...inputStyle(t), flex: 1, minWidth: 130 }} />
+          <input type="number" value={newOpt.option_value} onChange={e => setNewOpt({...newOpt, option_value: e.target.value})} placeholder="Value ($)" style={{ ...inputStyle(t), flex: 1, minWidth: 110 }} />
+          <button onClick={addOpt} style={{ ...btnStyle(t, 'primary'), padding: '8px 14px' }}>Add</button>
+        </div>
+      </div>
+
+      <div style={{ background: t.surface, borderRadius: 12, border: '1px solid ' + t.border, padding: 20 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 600, margin: '0 0 10px', color: t.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>CPARS Milestones</h3>
+        <div style={{ fontSize: 12, color: t.textSec, lineHeight: 1.7 }}>
+          {c.pop_start ? (() => {
+=== OPP COLS ===
+196:agency_id
+=== SAVE AS TEMPLATE ANCHOR ===
+6496:            }} title="Snapshot this proposal's sections into a client-scoped Draft template" style={btnStyle(t)}>Save as Template</button>
