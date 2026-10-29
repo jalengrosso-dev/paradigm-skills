@@ -1,0 +1,150 @@
+=== SECTIONS REFS ===
+362:  sections: {
+363:    listByProposal: async (pid) => { const { data, error } = await supabase.from('proposal_sections').select('*').eq('proposal_id', pid).order('section_order'); if (error) throw error; return data || []; },
+364:    createMany: async (rows) => { const { data, error } = await supabase.from('proposal_sections').insert(rows).select(); if (error) throw error; return data; },
+365:    update: async (id, patch) => { const { data, error } = await supabase.from('proposal_sections').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single(); if (error) throw error; return data; },
+5097:    proposal_sections: { technical: 0, management: 0, pastPerf: 0, price: 0 }
+5511:  const ps = o.proposal_sections || { technical: 0, management: 0, pastPerf: 0, price: 0 };
+5891:      await db.sections.update(id, patch);
+5920:      const doc = new Document({ creator: 'Paradigm Universe', title: proposal.title + ' — Deliverables Matrix', sections: [{ properties: { page: { size: { width: 12240, height: 15840 } } }, children }] });
+6062:    try { setSections(await db.sections.listByProposal(p.id)); }
+6074:      const updated = await db.sections.update(s.id, { content: editText[s.id] ?? s.content, status: (editText[s.id] ?? s.content) ? 'Drafted' : 'Empty' });
+6186:      const updated = await db.sections.update(s.id, { content: text, status: 'Drafted', needs_input: isGap, gap_score: topGapScore, gap_suggestion: gapSuggestion, top_library_match_id: topMatchId });
+6234:      const updated = await db.sections.update(s.id, { content_plan: plan, content_plan_status: 'approved', content_plan_approved_at: new Date().toISOString() });
+6322:      const fresh = await db.sections.listByProposal(selected.id);
+6379:        sections: [{ properties: {}, children }]
+6392:      const fresh = await db.sections.listByProposal(selected.id);
+6446:      const doc = new Document({ creator: 'Paradigm Universe', title: selected.title, features: { updateFields: true }, sections: [{ properties: {}, children }] });
+6454:      const snapshot = { frozen_at: now, sections: fresh.map(s => ({ volume: s.volume, title: s.title, content: s.content, order: s.section_order })), est_pages: pf.estPages };
+6553:        {bdPanel && <BreakdownPanel t={t} proposal={selected} opp={opps.find(o => o.id === selected.opportunity_id)} sections={sections} onClose={() => setBdPanel(false)} onSaved={(p) => { setSelected(p); refresh.proposals(); }} onSect
+6723:        try { await db.sections.update(newGapSection.id, { needs_input: false }); setSections(sections.map(x => x.id === newGapSection.id ? { ...x, needs_input: false } : x)); } catch(e) {}
+6770:  const doc = new Document({ creator: 'Paradigm Universe', title: (kp.name || 'Resume') + ' — Resume', sections: [{ properties: { page: { size: { width: 12240, height: 15840 } } }, children }] });
+7271:        body: JSON.stringify({ sources: { pastPerformance: true, sections: true } })
+7643:      const doc = new Document({ creator: 'Paradigm Universe', title: (proposal.title || 'Proposal') + ' — Orals Prep', sections: [{ properties: { page: { size: { width: 12240, height: 15840 } } }, children }] });
+8587:      await db.sections.createMany(bd.outline.map((s, i) => ({ proposal_id: proposal.id, volume: s.volume || 'Volume', title: s.title || ('Section ' + (i + 1)), section_order: existing + i })));
+8712:        body: JSON.stringify({ proposal_id: proposal.id, rfp_text: rfpText, sections: sections.map(s => s.title) })
+9390:      await db.sections.createMany(chosenTemplate.map((s, i) => ({ proposal_id: p.id, volume: s.volume, title: s.title, section_order: i })));
+=== ARCHIVE-EMBED 30-60 ===
+    try { return JSON.parse(t).data?.[0]?.embedding || null; } catch (e) { return null; }
+  }
+
+  // Embed one proposal's snapshot sections. Returns count embedded.
+  async function embedProposal(prop) {
+    const snap = prop.submitted_snapshot;
+    const sections = (snap && Array.isArray(snap.sections)) ? snap.sections : [];
+    const usable = sections.filter(s => s && s.content && String(s.content).trim().length > 0);
+    if (!usable.length) return 0;
+
+    // Idempotency: clear any prior rows for this proposal before re-inserting.
+    await fetch(`${SUPABASE_URL}/rest/v1/proposal_sections_archive?proposal_id=eq.${prop.id}`, {
+      method: 'DELETE', headers: sbHeaders
+    });
+
+    const rows = [];
+    for (const s of usable) {
+      const vec = await embed(String(s.content).substring(0, 30000));
+      if (!vec) continue; // skip a section that failed to embed; don't abort the whole proposal
+      rows.push({
+        proposal_id: prop.id,
+        opportunity_id: prop.opportunity_id || null,
+        volume: s.volume || null,
+        section_title: s.title || null,
+        content: String(s.content),
+        embedding: vec
+      });
+    }
+    if (!rows.length) return 0;
+
+    await fetch(`${SUPABASE_URL}/rest/v1/proposal_sections_archive`, {
+=== PROMOTE-WINS 40-70 ===
+    const oppRes = await fetch(`${SUPABASE_URL}/rest/v1/opportunities?select=id&stage=eq.Won`, { headers });
+    const wonOpps = await oppRes.json();
+    const wonIds = (Array.isArray(wonOpps) ? wonOpps : []).map(o => o.id).filter(Boolean);
+    if (!wonIds.length) {
+      return new Response(JSON.stringify({ success: true, promoted: 0, message: 'No won opportunities yet — nothing to promote.' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Step 2 — pull archived sections belonging to won opportunities
+    const archRes = await fetch(`${SUPABASE_URL}/rest/v1/proposal_sections_archive?select=id,volume,section_title,content,opportunity_id&opportunity_id=in.(${wonIds.join(',')})`, { headers });
+    const archived = await archRes.json();
+    if (!Array.isArray(archived) || !archived.length) {
+      return new Response(JSON.stringify({ success: true, promoted: 0, message: 'Won opportunities have no archived sections yet.' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Step 3 — dedup: which archive ids are already in the library?
+    // We stamp promoted rows with a tag "arch:<archive_id>" so re-runs skip them.
+    const existRes = await fetch(`${SUPABASE_URL}/rest/v1/content_library?select=tags&source=eq.won_proposal`, { headers });
+    const existing = await existRes.json();
+    const promotedIds = new Set();
+    for (const row of (Array.isArray(existing) ? existing : [])) {
+      for (const tg of (Array.isArray(row.tags) ? row.tags : [])) {
+        if (typeof tg === 'string' && tg.startsWith('arch:')) promotedIds.add(tg.slice(5));
+      }
+    }
+
+    // Step 4 — build + insert candidates (as draft), embed each
+    let promoted = 0, skipped = 0;
+=== PROMOTE BTN 5965-6012 ===
+function ArchiveSearchPanel({ t }) {
+  const [q, setQ] = useState('');
+  const [wonOnly, setWonOnly] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [results, setResults] = useState(null);
+  const [copied, setCopied] = useState(null);
+  const [promoteBusy, setPromoteBusy] = useState(false);
+
+  const promoteWins = async () => {
+    setPromoteBusy(true);
+    try {
+      const res = await fetch('/.netlify/functions/library-promote-wins', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+      });
+      const data = await res.json();
+      alert(data.message || (data.error ? ('Error: ' + data.error) : 'Done.'));
+    } catch (e) { alert('Promote failed: ' + e.message); }
+    finally { setPromoteBusy(false); }
+  };
+
+  const run = async () => {
+    if (!q) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/.netlify/functions/proposal-archive-search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, won_only: wonOnly, match_count: 8, similarity_threshold: 0.2 })
+      });
+      const data = await res.json();
+      setResults(data.matches || []);
+    } catch (e) { alert('Search failed: ' + e.message); }
+    finally { setBusy(false); }
+  };
+
+  const copyText = (m) => {
+    navigator.clipboard.writeText(m.content || '').then(() => {
+      setCopied(m.id); setTimeout(() => setCopied(null), 1500);
+    }).catch(() => {});
+  };
+
+  return (
+    <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: t.textMuted, fontWeight: 600, letterSpacing: 0.5 }}>SEARCH PAST PROPOSALS</div>
+        <button onClick={promoteWins} disabled={promoteBusy} title="Copy sections from won proposals into the Content Library as draft snippets for review" style={{ ...btnStyle(t), padding: '4px 10px', fontSize: 11, opacity: promoteBusy ? 0
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Try: 'three-tier quality control for a healthcare facility'" style={{ ...inputStyle(t), flex: 1, minWidth: 220 }} onKeyDown={e => e.key === 'Enter' && run()} />
+=== PROPOSAL DETAIL ===
+6455:      await db.proposals.update(selected.id, { submitted_at: now, submitted_snapshot: snapshot, status: 'Submitted' });
+6458:      setSelected({ ...selected, submitted_at: now, status: 'Submitted' });
+6485:            <button onClick={draftAllEmpty} disabled={!!draftAllBusy || !!selected.submitted_at} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 8, background: t.accentDim, color: t.accent, fo
+6542:        {selected.submitted_at && (
+6546:              <span style={{ fontSize: 13, color: t.text }}>Submitted {fmtDate(selected.submitted_at)} — sections are locked.</span>
+6548:            <button onClick={async () => { if (!confirm('Reopen this submitted proposal for editing? The frozen snapshot is preserved.')) return; try { await db.proposals.update(selected.id, { submitted_at: null }); setSelected({ ...se
+6590:                    <button onClick={e => { e.stopPropagation(); draftSection(s); }} disabled={draftBusy === s.id || !!selected.submitted_at} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 6,
+6615:                                <button onClick={() => generatePlan(s)} disabled={planBusy === s.id || !!selected.submitted_at} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borde
+6638:                                      <button onClick={() => approvePlan(s)} disabled={!!selected.submitted_at} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: t.accent, color: '#0A0B0E', borde
+6659:                        <button onClick={() => saveSection(s)} disabled={saveBusy === s.id || !!selected.submitted_at} style={btnStyle(t, 'primary')}>{saveBusy === s.id ? 'Saving...' : 'Save Section'}</button>
