@@ -1,0 +1,148 @@
+=== DOC_TYPES ===
+const DOC_TYPES = [
+  { id: 'proposal', label: 'Full Proposal', template: SECTION_TEMPLATE },
+  { id: 'white_paper', label: 'White Paper', template: WHITE_PAPER_TEMPLATE },
+  { id: 'rfi_response', label: 'RFI Response', template: RFI_TEMPLATE },
+];
+
+// Brand/identity guardrail: forbidden third-party details that must never ship in a PSS artifact.
+const PSS_FORBIDDEN = [
+  { needle: 'usa contract solutions', label: '"USA Contract Solutions"' },
+  { needle: '200 east pratt', label: '200 East Pratt St (Baltimore address)' },
+  { needle: 'usacontractsolutions.com', label: 'info@USAContractSolutions.com' },
+  { needle: '410-744-3266', label: 'phone 410-744-3266' },
+  { needle: '4107443266', label: 'phone 410-744-3266' },
+=== DRAFTSECTION 45-130 ===
+          const ghosts = bcmRows.filter(r => !r.is_us && r.ghost_angles && r.ghost_angles.trim()).map(r => r.ghost_angles.trim());
+          if (ghosts.length) ghostBlock = '\n\n=== GHOSTING ANGLES (use sparingly, never name competitors) ===\nWhere natural, raise the weakness of alternative approaches:\n' + ghosts.map(g => '- ' + g).join('\n');
+        } catch(e) {}
+      }
+      // Library retrieval — pull top 3 approved snippets relevant to this section
+      let libraryContext = '';
+      let topGapScore = 0;
+      let topMatchId = null;
+      const GAP_THRESHOLD = 0.35;
+      try {
+          const libQuery = `${s.title} ${s.volume} ${selected.title} ${selected.notes || ''} ${opp ? opp.title : ''}`.trim();
+          const libRes = await fetch('/.netlify/functions/library-search', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: libQuery, client_id: selected.client_id || null, match_count: 3, similarity_threshold: 0.0 })
+          });
+          const libData = await libRes.json();
+          if (libData.success && libData.matches && libData.matches.length > 0) {
+            topGapScore = libData.matches[0].similarity || 0;
+            topMatchId = libData.matches[0].id;
+            // Only weave snippets in if they cross the floor; weaker matches still get tracked for gap analysis
+            const usableMatches = libData.matches.filter(m => m.similarity >= 0.25).slice(0, 2);
+            if (usableMatches.length > 0) {
+              libraryContext = '\n\nAPPROVED CONTENT LIBRARY (use this language and substance — do not invent contradictory facts):\n' +
+                usableMatches.map((m, i) => `[Snippet ${i+1} — ${m.title} | category: ${m.category}]\n${(m.content || '').substring(0, 800)}`).join('\n\n');
+            }
+          }
+      } catch(e) {}
+
+      const sys = (skillContent ? skillContent + '\n\n' : '') + 'You are the Proposal Builder agent. Write the requested proposal section in professional federal proposal prose. Solution-oriented, specific, evaluator-focused. No preamble, no markdown headers — return only the sec
+      const planBlock = (s.content_plan && s.content_plan_status === 'approved') ? (() => {
+        const pl = s.content_plan; const L = [];
+        L.push('\n\n=== APPROVED CONTENT PLAN — write to THIS brief ===');
+        if (pl.key_question) L.push('This section must answer ONE question: ' + pl.key_question);
+        if (pl.requirements && pl.requirements.length) L.push('Address these RFP requirements: ' + pl.requirements.join('; '));
+        if (pl.customer_terms && pl.customer_terms.length) L.push('Mirror this customer terminology verbatim: ' + pl.customer_terms.join(', '));
+        if (pl.proof_points && pl.proof_points.length) L.push('Supply real evidence for: ' + pl.proof_points.join('; ') + ' (use ONLY documented facts; never fabricate numbers)');
+        if (pl.page_budget) L.push('Target length: about ' + pl.page_budget + ' page(s).');
+        if (pl.graphics && pl.graphics.length) L.push('Suggested graphic action caption: ' + pl.graphics.map(g => g.caption).filter(Boolean).join(' | '));
+        if (pl.notes) L.push('Guidance: ' + pl.notes);
+        L.push('Lead with BLUF. Use active, benefit-led headings, never "About Us".');
+        return L.join('\n');
+      })() : '';
+      const userMsg = `Proposal: ${selected.title}\n${clientCtx}\n${oppCtx}\n${ppCtx}${kpCtx}\n\nWrite this section: "${s.title}" (${s.volume}).` + planBlock + clauseBlock + themeBlock + ghostBlock + (s.content ? `\n\nExisting draft to improve:\n${s.content}` : '') + (selected.no
+      const response = await fetch('/.netlify/functions/draft-section-stream', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system: sys, userMsg: userMsg, max_tokens: 3000 })
+      });
+      if (!response.ok) { const errTxt = await response.text(); throw new Error('Draft failed: ' + errTxt.substring(0, 200)); }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let text = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+        setEditText(prev => ({ ...prev, [s.id]: text }));
+        setOpenSection(s.id);
+      }
+      if (!text) throw new Error('Empty response');
+      const isGap = topGapScore < GAP_THRESHOLD;
+      const gapSuggestion = isGap ? `No approved library content matched this section (top similarity ${(topGapScore * 100).toFixed(0)}%). Consider adding an approved snippet for: "${s.title}" — covering ${s.volume} themes specific to this client's work.` : null;
+      const updated = await db.sections.update(s.id, { content: text, status: 'Drafted', needs_input: isGap, gap_score: topGapScore, gap_suggestion: gapSuggestion, top_library_match_id: topMatchId });
+      setSections(sections.map(x => x.id === s.id ? updated : x));
+      setEditText({ ...editText, [s.id]: text });
+      setOpenSection(s.id);
+    } catch(e) { alert('Draft failed: ' + e.message); }
+    finally { setDraftBusy(null); }
+  };
+
+  const [planBusy, setPlanBusy] = useState(null);
+  const [planDraft, setPlanDraft] = useState({});
+  const [planOpen, setPlanOpen] = useState({});
+  const generatePlan = async (s) => {
+    setPlanBusy(s.id);
+    try {
+      const opp = opps.find(o => o.id === selected.opportunity_id);
+      let planClauses = [];
+      try {
+        const allReqs = await db.compliance.listByProposal(selected.id);
+        planClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase()).map(c => `${c.clause_number}${c.clause_title ? ' ' + c.clause_title : ''}: ${(c.requirement_text || '')
+      } catch(e) {}
+      let proofPoints = [];
+      try {
+        const ppQuery = `${s.title} ${s.volume} ${opp ? opp.title : ''}`.trim();
+        const ppRes = await fetch('/.netlify/functions/proofpoint-search', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+=== MODAL RENDER ===
+    <FormRow t={t} label="Proposal Title *"><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., USACE Savannah MATOC Technical Proposal" style={inputStyle(t)} /></FormRow>
+    <FormRow t={t} label="Document Type">
+      <select value={form.doc_type} onChange={e => setForm({...form, doc_type: e.target.value})} style={inputStyle(t)}>
+        {DOC_TYPES.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+      </select>
+    </FormRow>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <FormRow t={t} label="Client">
+        <select value={form.client_id} onChange={e => setForm({...form, client_id: e.target.value, opportunity_id: ''})} style={inputStyle(t)}>
+          <option value="">Select client...</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </FormRow>
+      <FormRow t={t} label="Opportunity">
+        <select value={form.opportunity_id} onChange={e => setForm({...form, opportunity_id: e.target.value})} style={inputStyle(t)}>
+          <option value="">Select opportunity...</option>
+          {clientOpps.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
+        </select>
+      </FormRow>
+    </div>
+    <FormRow t={t} label="Due Date"><input type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})} style={inputStyle(t)} /></FormRow>
+    <FormRow t={t} label="Notes / Win Themes"><textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} placeholder="Win themes, discriminators, page limits, anything the AI should factor in..." style={{ ...inputStyle(t), resize: 'vertical' }
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+      <button onClick={onClose} style={btnStyle(t, 'secondary')}>Cancel</button>
+      <button onClick={save} disabled={busy} style={btnStyle(t, 'primary')}>{busy ? 'Creating...' : 'Create Proposal'}</button>
+    </div>
+  </Modal>;
+}
+
+
+const REVENUE_TYPES = ['Retainer', 'Commission', 'Milestone', 'One-Time'];
+const REVENUE_TYPE_COLORS = { 'Retainer': '#3B82F6', 'Commission': '#D4A574', 'Milestone': '#A855F7', 'One-Time': '#22D3EE' };
+
+function RevenueView({ t, revenue, clients, refresh }) {
+  const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [filter, setFilter] = useState('all');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const yearStart = new Date().getFullYear() + '-01-01';
+
+  const owed = revenue.filter(r => r.status === 'Owed');
+  const owedTotal = owed.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const overdue = owed.filter(r => r.due_date && r.due_date < todayStr);
+  const overdueTotal = overdue.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const paidYear = revenue.filter(r => r.status === 'Paid' && r.paid_date && r.paid_date >= yearStart);
