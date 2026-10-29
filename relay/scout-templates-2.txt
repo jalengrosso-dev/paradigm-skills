@@ -1,0 +1,35 @@
+    update: async (id, patch) => { const { data, error } = await supabase.from('past_performance').update(patch).eq('id', id).select().single(); if (error) throw error; return data; },
+    remove: async (id) => { const { error } = await supabase.from('past_performance').delete().eq('id', id); if (error) throw error; },
+  },
+  proposals: {
+    list: async () => { const { data, error } = await supabase.from('proposals').select('*').order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+    create: async (row) => { const { data, error } = await supabase.from('proposals').insert(row).select().single(); if (error) throw error; return data; },
+    update: async (id, patch) => { const { data, error } = await supabase.from('proposals').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single(); if (error) throw 
+    remove: async (id) => { const { error } = await supabase.from('proposals').delete().eq('id', id); if (error) throw error; },
+  },
+  library: {
+    list: async () => { const { data, error } = await supabase.from('content_library').select('id,created_at,updated_at,title,category,content,tags,status,client_id,source,usage_count,last_used_at').o
+    create: async (row) => { const { data, error } = await supabase.from('content_library').insert(row).select('id,created_at,updated_at,title,category,content,tags,status,client_id,source,usage_count
+    update: async (id, patch) => { const { data, error } = await supabase.from('content_library').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select('id,created_at,updated_
+    remove: async (id) => { const { error } = await supabase.from('content_library').delete().eq('id', id); if (error) throw error; },
+  },
+  proofpoints: {
+    list: async () => { const { data, error } = await supabase.from('proof_points').select('id,created_at,updated_at,claim,metric,source,poc_name,cleared_to_cite,status,client_id,tags,usage_count,last
+    create: async (row) => { const { data, error } = await supabase.from('proof_points').insert(row).select('id,created_at,updated_at,claim,metric,source,poc_name,cleared_to_cite,status,client_id,tags
+    update: async (id, patch) => { const { data, error } = await supabase.from('proof_points').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select('id,created_at,updated_at,
+    remove: async (id) => { const { error } = await supabase.from('proof_points').delete().eq('id', id); if (error) throw error; },
+  },
+=== NAV ===
+615:          {view === 'library' && <LibraryView {...{ t, library, clients, refresh: refresh.library }} />}
+696:  library: { title: 'Content Library', tips: [
+1575:      { id: 'library', label: 'Content Library', icon: BookOpen },
+5990:        <button onClick={promoteWins} disabled={promoteBusy} title="Copy sections from won proposals into the Content Library as draft snippets for review" style={{ ...btnStyle(t), padding: '4px 
+7084:          <h1 style={{ margin: 0, fontSize: 28, color: t.text }}>Content Library</h1>
+=== CLIENTS ===
+167:from('clients')
+168:from('clients')
+169:from('clients')
+166:  clients: {
+568:    clients: async () => setClients(await db.clients.list()),
+659:  clients: { title: 'Clients', tips: [
+=== RLS ===
