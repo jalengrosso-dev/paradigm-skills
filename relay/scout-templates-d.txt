@@ -1,0 +1,136 @@
+=== CHOSEN TEMPLATE ===
+9510:      const chosenTemplate = (DOC_TYPES.find(d => d.id === form.doc_type) || DOC_TYPES[0]).template;
+9511:      await db.sections.createMany(chosenTemplate.map((s, i) => ({ proposal_id: p.id, volume: s.volume, title: s.title, section_order: i })));
+=== CREATE FLOW around 9511 ===
+            return (<>
+              <div>• Request CPARS at 12 months: <strong style={{ color: t.text }}>{cpars12.toLocaleDateString('en-US', { dateStyle: 'medium' })}</strong>{cpars12 < new Date() ? <span style={{ color: '#F59E0B' }}> — past due, request now</span> : ''}</div>
+              {closeout && <div>• Request final CPARS at closeout: <strong style={{ color: t.text }}>{closeout.toLocaleDateString('en-US', { dateStyle: 'medium' })}</strong></div>}
+            </>);
+          })() : <div>Set the PoP start date to see CPARS milestone dates.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function ProposalModal({ t, clients, opps, onClose, onSaved }) {
+  const [form, setForm] = useState({ title: '', client_id: '', opportunity_id: '', due_date: '', notes: '', doc_type: 'proposal' });
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    if (!form.title) return alert('Proposal title is required');
+    setBusy(true);
+    try {
+      const p = await db.proposals.create({
+        title: form.title,
+        client_id: form.client_id || null,
+        opportunity_id: form.opportunity_id || null,
+        due_date: form.due_date || null,
+        notes: form.notes || null,
+        doc_type: form.doc_type || 'proposal',
+        status: 'Outline'
+      });
+      const chosenTemplate = (DOC_TYPES.find(d => d.id === form.doc_type) || DOC_TYPES[0]).template;
+      await db.sections.createMany(chosenTemplate.map((s, i) => ({ proposal_id: p.id, volume: s.volume, title: s.title, section_order: i })));
+      onSaved(p);
+    } catch(e) { alert('Failed: ' + e.message); }
+    finally { setBusy(false); }
+  };
+
+  const [fetchedOpps, setFetchedOpps] = useState(null);
+  useEffect(() => {
+    setFetchedOpps(null);
+=== DRAFTSECTION ===
+  const draftSection = async (s) => {
+    setDraftBusy(s.id);
+    try {
+      const client = clients.find(c => c.id === selected.client_id);
+      const opp = opps.find(o => o.id === selected.opportunity_id);
+      let ppRecords = [];
+      if (client) { try { ppRecords = await db.pastPerf.listByClient(client.id); } catch(e) {} }
+      // FAR/DFARS clauses that require a narrative response in THIS section
+      let clauseBlock = '';
+      try {
+        const allReqs = await db.compliance.listByProposal(selected.id);
+        const secClauses = (allReqs || []).filter(r => r.clause_number && r.narrative_required === true && (r.mapped_section || '').toLowerCase() === (s.volume || '').toLowerCase());
+        if (secClauses.length) {
+          clauseBlock = '\n\n=== APPLICABLE FAR/DFARS CLAUSES FOR THIS SECTION ===\nThese clauses require a narrative response in THIS section. Address each explicitly — cite the clause number where it strengthens the response and describe your compliance appr
+        }
+      } catch(e) {}
+      let skillContent = null;
+      try {
+        const skillRes = await fetch('/.netlify/functions/fetch-skill', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agent_id: 'proposal' })
+        });
+        const skillData = await skillRes.json();
+        if (skillData.skill) skillContent = skillData.skill;
+      } catch(e) {}
+      const clientCtx = client ? `CLIENT: ${client.name} | Industry: ${client.industry || 'N/A'} | NAICS: ${(client.naics || []).join(', ') || 'N/A'} | Certifications: ${(client.certifications || []).filter(x => x.status === 'active').map(x => x.type).join(', 
+      const oppCtx = opp ? `OPPORTUNITY: ${opp.title} | Solicitation: ${opp.solicitation_number || 'N/A'} | Agency: ${opp.agency || 'N/A'} | Description: ${(opp.description || '').substring(0, 1500)}` : 'No opportunity linked.';
+      const ppCtx = ppRecords.length ? 'PAST PERFORMANCE RECORDS (use ONLY these — never invent contracts):\n' + ppRecords.map(r => `- ${r.title} | Contract: ${r.contract_number || 'N/A'} | Agency: ${r.agency || 'N/A'} | Value: $${r.contract_value ? Number(r.c
+      let kpCtx = '';
+      if (/key personnel|staffing|resume/i.test(s.title)) {
+        let kpRecords = [];
+        if (client) { try { kpRecords = (await db.keypersonnel.list()).filter(k => k.client_id === client.id); } catch(e) {} }
+        kpCtx = kpRecords.length ? '\nKEY PERSONNEL (use ONLY these real people — never invent names, titles, or credentials):\n' + kpRecords.map(k => `- ${k.name}${k.title ? ', ' + k.title : ''} | Labor category: ${k.labor_category || 'N/A'} | Experience: ${k
+      }
+      // Win themes — the spine of a responsive section (APMP: weave themes into every section)
+      let themeBlock = '';
+      const shipThemes = (selected.win_themes || []).filter(th => th.label);
+      if (shipThemes.length) {
+        themeBlock = '\n\n=== WIN THEMES TO WEAVE INTO THIS SECTION ===\nReinforce these where relevant; lead with the customer benefit, then the discriminator, then the proof. Do not fabricate proof.\n' + shipThemes.map(th => `- ${th.label}${th.statement ? ':
+      }
+      // Ghost angles from the BCM — raise the alternative's weakness without naming competitors
+      let ghostBlock = '';
+      if (opp && opp.id) {
+        try {
+          const bcmRows = await db.oppCompetitors.listByOpp(opp.id);
+          const ghosts = bcmRows.filter(r => !r.is_us && r.ghost_angles && r.ghost_angles.trim()).map(r => r.ghost_angles.trim());
+=== STREAM FN HEAD ===
+import fs from 'fs';
+import path from 'path';
+
+const IS_PRODUCTION = !!process.env.NETLIFY && !process.env.NETLIFY_DEV;
+
+function getApiKey() {
+  const direct = process.env.ANTHROPIC_API_KEY;
+  if (direct) return direct;
+  try {
+    const envContent = fs.readFileSync(path.resolve(process.cwd(), '.env'), 'utf-8');
+    const match = envContent.match(/ANTHROPIC_API_KEY=(.+)/);
+    return match ? match[1].trim() : process.env.ANTHROPIC_API_KEY;
+  } catch(e) { return process.env.ANTHROPIC_API_KEY; }
+}
+
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  try {
+    const { system, userMsg, max_tokens } = await req.json();
+
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: max_tokens || 3000,
+        stream: true,
+        system: system,
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+
+=== STREAM PROMPT ===
+23:    const { system, userMsg, max_tokens } = await req.json();
+36:        system: system,
+37:        messages: [{ role: 'user', content: userMsg }]
+      93 netlify/functions/draft-section-stream.js
