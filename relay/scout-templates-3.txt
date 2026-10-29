@@ -1,0 +1,79 @@
+=== IMPORTS ===
+27:} from 'lucide-react';
+=== STATE ===
+518:  const [library, setLibrary] = useState([]);
+540:      setOpps(o); setTasks(tk); setEvents(e); setDocs(d); setNotifs(n); setSuggestions(s); setProspects(pr); setScores(sc); setSuretyAgents(su); setProposals(pp); setRevenue(rv); setOutreachDrafts(od); setLibrary(lib
+583:    library: async () => setLibrary(await db.library.list()),
+=== REFRESH 560-580 ===
+    if (v === 'opportunity-detail') setSelected(s => ({ ...s, opp: id }));
+    if (mobile) setSidebarOpen(false);
+  };
+
+  const openAgent = (id, ctx = null) => { setAgent(id); setAgentCtx(ctx); setAiOpen(true); };
+  const logout = async () => { await supabase.auth.signOut(); };
+
+  const refresh = {
+    clients: async () => setClients(await db.clients.list()),
+    agencies: async () => setAgencies(await db.agencies.list()),
+    leads: async () => setLeads(await db.leads.list()),
+    opps: async () => setOpps(await db.opps.list()),
+    tasks: async () => setTasks(await db.tasks.list()),
+    contacts: async () => setContacts(await db.contacts.list()),
+    notifs: async () => setNotifs(await db.notifs.list()),
+    suggestions: async () => setSuggestions(await db.suggestions.list()),
+    docs: async () => setDocs(await db.docs.list()),
+    proposals: async () => setProposals(await db.proposals.list()),
+    revenue: async () => setRevenue(await db.revenue.list()),
+    outreachDrafts: async () => setOutreachDrafts(await db.outreachDrafts.listPending()),
+    prospects: async () => setProspects(await db.prospects.list()),
+=== VIEWS 610-620 ===
+          {view === 'opportunity-detail' && selected.opp && <OppDetail {...{ t, id: selected.opp, opps, clients, agencies, navigate, openAgent, scores, refresh }} />}
+          {view === 'calendar' && <CalendarView {...{ t, events, opps, tasks, refresh }} />}
+          {view === 'tasks' && <TasksView {...{ t, tasks, setTasks, clients, refresh }} />}
+          {view === 'documents' && <DocsView {...{ t, docs, clients, opps, refresh }} />}
+          {view === 'proposals' && <ProposalsView {...{ t, proposals, clients, opps, agencies, refresh }} />}
+          {view === 'library' && <LibraryView {...{ t, library, clients, refresh: refresh.library }} />}
+          {view === 'proofpoints' && <ProofPointsView {...{ t, proofpoints, clients, refresh: refresh.proofpoints }} />}
+          {view === 'keypersonnel' && <KeyPersonnelView {...{ t, keypersonnel, clients, refresh: refresh.keypersonnel }} />}
+          {view === 'revenue' && <RevenueView {...{ t, revenue, clients, refresh }} />}
+          {view === 'contracts' && <ContractsView {...{ t, contracts, clients, opps, refresh }} />}
+          {view === 'outreach' && <OutreachQueueView {...{ t, outreachDrafts, prospects, refresh }} />}
+=== TIPS 694-702 ===
+    'Once marked submitted, the proposal freezes — no more edits. That is intentional.'
+  ]},
+  library: { title: 'Content Library', tips: [
+    'Reusable proposal content with AI-powered semantic search (RAG) — drafting pulls the best-matching snippets automatically.',
+    'Only approve snippets that are genuinely reusable. Edit out anything test-specific or client-specific before relying on it.',
+    'An amber badge on a draft means the library had no strong match (knowledge gap) — that section needs your input.'
+  ]},
+  documents: { title: 'Documents', tips: [
+    'Central file storage backed by Supabase. Drag and drop to upload.',
+=== NAV 1565-1590 ===
+      { id: 'outreach', label: 'Outreach Queue', icon: Mail },
+      { id: 'surety', label: 'Surety Partners', icon: Shield },
+    ]},
+    { gid: 'capture', label: 'Capture', items: [
+      { id: 'agencies', label: 'Agencies', icon: Building2 },
+      { id: 'opportunities', label: 'Opportunities', icon: Briefcase },
+      { id: 'competitive', label: 'Competitive Intel', icon: Award },
+    ]},
+    { gid: 'proposals', label: 'Proposals', items: [
+      { id: 'proposals', label: 'Proposals', icon: PenTool },
+      { id: 'library', label: 'Content Library', icon: BookOpen },
+      { id: 'proofpoints', label: 'Proof Points', icon: CheckSquare },
+      { id: 'keypersonnel', label: 'Key Personnel', icon: Users },
+    ]},
+    { gid: 'clientsg', label: 'Clients & Delivery', items: [
+      { id: 'clients', label: 'Clients', icon: Users },
+      { id: 'contracts', label: 'Contracts', icon: FileSignature },
+      { id: 'revenue', label: 'Revenue', icon: DollarSign },
+    ]},
+    { gid: 'ops', label: 'Operations', items: [
+      { id: 'calendar', label: 'Calendar', icon: Calendar },
+      { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+      { id: 'documents', label: 'Documents', icon: FileText },
+      { id: 'agents', label: 'Agent Hub', icon: Bot },
+      { id: 'settings', label: 'Settings', icon: Settings },
+    ]},
+=== LIBVIEW ===
+7013:function LibraryView({ t, library, clients, refresh }) {
