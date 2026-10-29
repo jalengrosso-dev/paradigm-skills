@@ -1,0 +1,127 @@
+=== FUNCTIONS ===
+apollo-surety-search.js
+archive-embed.js
+breakdown-rfp.js
+claude.js
+cleanup-demo.js
+content-plan-generate.js
+draft-section-stream.js
+expiring-contracts.js
+extract-requirements.js
+fetch-skill.js
+generate-outreach-drafts.js
+generate-questions-background.js
+google-auth.js
+google-callback.js
+google-status.js
+google-token.js
+ingest-amendment.js
+ingest-opportunities-background.js
+ingest-opportunities-cron.js
+ingest-subnet.js
+library-embed.js
+library-promote-wins.js
+library-search.js
+library-seed.js
+memory-writer.js
+morning-digest-cron.js
+orals-prep.js
+proofpoint-embed.js
+proofpoint-search.js
+proposal-archive-search.js
+recurring-revenue-cron.js
+rescore-background.js
+sam-search.js
+score-opportunity.js
+score-prospect.js
+score-pwin.js
+search-memories.js
+seed-nationwide-prospects.js
+send-email.js
+send-invite.js
+sheets-export-matrix.js
+signwell.js
+successai-webhook.js
+successai.js
+trigger-checker-background.js
+trigger-checker-cron.js
+usaspending-check.js
+weekly-briefing-background.js
+=== LIBRARY-EMBED 1-35 ===
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  try {
+    const { library_id, content } = await req.json();
+
+    if (!library_id || !content) {
+      return new Response(JSON.stringify({ error: 'library_id and content required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+    // Step 1 — Generate embedding
+    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        input: content,
+        model: 'text-embedding-3-small'
+      })
+    });
+
+=== PROMOTE-WINS 1-17 ===
+// Lessons-learned loop: promote sections from WON proposals into the Content Library
+// as draft candidates for human review/approval. Clones library-seed's section logic,
+// but sources only from proposal_sections_archive whose opportunity stage = 'Won'.
+// Idempotent: skips sections already promoted (tracked by source archive id in tags).
+
+function getOpenAIKey() { return process.env.OPENAI_API_KEY; }
+
+export default async (req) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+  }
+  try {
+    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const KEY = process.env.SUPABASE_SERVICE_KEY;
+    const OPENAI_API_KEY = getOpenAIKey();
+    const headers = { 'apikey': KEY, 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+=== ANTHROPIC PATTERN ===
+netlify/functions/breakdown-rfp.js
+netlify/functions/claude.js
+netlify/functions/content-plan-generate.js
+netlify/functions/draft-section-stream.js
+netlify/functions/extract-requirements.js
+netlify/functions/ingest-opportunities-background.js:10:const IS_PRODUCTION = !!process.env.NETLIFY && !process.env.NETLIFY_DEV;
+netlify/functions/ingest-opportunities-background.js:13:  const direct = process.env.ANTHROPIC_API_KEY;
+netlify/functions/ingest-opportunities-background.js:17:    const match = envContent.match(/^ANTHROPIC_API_KEY=(.+)$/m);
+netlify/functions/ingest-opportunities-background.js:154:        IS_PRODUCTION,
+netlify/functions/claude.js:4:const IS_PRODUCTION = !!process.env.NETLIFY && !process.env.NETLIFY_DEV;
+netlify/functions/claude.js:7:  const direct = process.env.ANTHROPIC_API_KEY;
+netlify/functions/claude.js:11:    const match = envContent.match(/ANTHROPIC_API_KEY=(.+)/);
+netlify/functions/claude.js:12:    return match ? match[1].trim() : process.env.ANTHROPIC_API_KEY;
+netlify/functions/claude.js:13:  } catch(e) { return process.env.ANTHROPIC_API_KEY; }
+netlify/functions/weekly-briefing-background.js:5:    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+netlify/functions/weekly-briefing-background.js:126:        model: 'claude-sonnet-4-5',
+netlify/functions/extract-requirements.js:5:  const direct = process.env.ANTHROPIC_API_KEY;
+=== PARSERS ===
+14:    "docx": "^9.7.1",
+=== PROPOSAL HEADER ===
+5973:  const promoteWins = async () => {
+6009:        <button onClick={promoteWins} disabled={promoteBusy} title="Copy sections from won proposals into the Content Library as draft snippets for review" style={{ ...btnStyle(t), padding: '4px 10px', fontSize: 11,
+6043:function ProposalsView({ t, proposals, clients, opps, agencies, refresh }) {
